@@ -62,78 +62,353 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
     }
   }, [messages, chatLoading, activeTab]);
 
-  // Simple markdown-style bold and list renderer to avoid raw '**' in chat UI
-  const parseBoldText = (text: string, isUser: boolean) => {
-    if (!text.includes('**')) return text;
-    const parts = text.split('**');
-    return parts.map((part, idx) => {
-      if (idx % 2 === 1) {
-        return (
-          <strong key={idx} className={cn(
-            "font-extrabold",
-            isUser ? "text-white" : "text-[#0A0E1A]"
-          )}>
-            {part}
-          </strong>
-        );
-      }
-      return part;
-    });
-  };
-
+  // Rich Markdown parser structures and components
+  // Supported features: Headers (#, ##, ###), lists (*, -, 1.), tables (|), code blocks (```) with Copy button, inline bold (**), italic (*), and code (`)
+  
   const renderFormattedText = (text: string, isUser: boolean) => {
+    interface MarkdownBlock {
+      type: 'paragraph' | 'header' | 'list' | 'ordered-list' | 'table' | 'code-block';
+      level?: number;
+      items?: string[];
+      rows?: string[][];
+      headers?: string[];
+      content?: string;
+      language?: string;
+    }
+
+    // Sub-component for code blocks with active Copy-to-Clipboard functionality
+    const CodeBlock = ({ content, language }: { content: string; language?: string }) => {
+      const [copied, setCopied] = useState(false);
+
+      const handleCopy = async () => {
+        try {
+          await navigator.clipboard.writeText(content);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+          console.error('Failed to copy code: ', err);
+        }
+      };
+
+      return (
+        <div className="my-2.5 rounded-xl bg-[#0D1117] dark:bg-black/80 p-3 font-mono text-[10px] text-white border border-white/10 relative group">
+          <div className="flex justify-between items-center text-[9px] text-white/50 mb-1.5 border-b border-white/5 pb-1 select-none">
+            <span>{language || 'code'}</span>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 hover:text-white transition-colors duration-150 px-1.5 py-0.5 rounded hover:bg-white/10"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle className="h-3 w-3 text-[#2EA44F]" />
+                  <span className="text-[#2EA44F]">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <ClipboardCheck className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          </div>
+          <pre className="whitespace-pre overflow-x-auto max-w-full scrollbar-none py-0.5">
+            <code>{content}</code>
+          </pre>
+        </div>
+      );
+    };
+
+    // 1. Lexer: split string into structured Markdown block tokens
     const lines = text.split('\n');
+    const blocks: MarkdownBlock[] = [];
+    let currentBlock: MarkdownBlock | null = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Code Block check
+      if (trimmed.startsWith('```')) {
+        if (currentBlock && currentBlock.type === 'code-block') {
+          blocks.push(currentBlock);
+          currentBlock = null;
+        } else {
+          if (currentBlock) blocks.push(currentBlock);
+          const language = trimmed.slice(3).trim();
+          currentBlock = { type: 'code-block', content: '', language };
+        }
+        continue;
+      }
+
+      if (currentBlock && currentBlock.type === 'code-block') {
+        currentBlock.content = (currentBlock.content ? currentBlock.content + '\n' : '') + line;
+        continue;
+      }
+
+      // Table check
+      if (trimmed.startsWith('|')) {
+        const parts = line.split('|').map(p => p.trim());
+        const isSeparator = parts.every(p => p === '' || p.startsWith('-') || p.startsWith(':'));
+
+        if (isSeparator) {
+          if (currentBlock && currentBlock.type === 'table') {
+            continue;
+          }
+        }
+
+        const rowData = line
+          .split('|')
+          .slice(1, -1)
+          .map(p => p.trim());
+
+        if (currentBlock && currentBlock.type === 'table') {
+          currentBlock.rows?.push(rowData);
+        } else {
+          if (currentBlock) blocks.push(currentBlock);
+          currentBlock = { type: 'table', headers: rowData, rows: [] };
+        }
+        continue;
+      }
+
+      // Headers check
+      if (trimmed.startsWith('#')) {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = null;
+
+        const match = line.match(/^(#{1,6})\s+(.*)$/);
+        if (match) {
+          const level = match[1].length;
+          const content = match[2];
+          blocks.push({ type: 'header', level, content });
+          continue;
+        }
+      }
+
+      // Unordered list item check
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+        const content = trimmed.replace(/^(\s*[\*\-•]\s+)/, '').trim();
+        if (currentBlock && currentBlock.type === 'list') {
+          currentBlock.items?.push(content);
+        } else {
+          if (currentBlock) blocks.push(currentBlock);
+          currentBlock = { type: 'list', items: [content] };
+        }
+        continue;
+      }
+
+      // Ordered list item check
+      const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+      if (olMatch) {
+        const content = olMatch[2].trim();
+        if (currentBlock && currentBlock.type === 'ordered-list') {
+          currentBlock.items?.push(content);
+        } else {
+          if (currentBlock) blocks.push(currentBlock);
+          currentBlock = { type: 'ordered-list', items: [content] };
+        }
+        continue;
+      }
+
+      // Block separator (empty line)
+      if (trimmed === '') {
+        if (currentBlock) {
+          blocks.push(currentBlock);
+          currentBlock = null;
+        }
+        continue;
+      }
+
+      // Paragraph
+      if (currentBlock && currentBlock.type === 'paragraph') {
+        currentBlock.content = (currentBlock.content ? currentBlock.content + '\n' : '') + line;
+      } else {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'paragraph', content: line };
+      }
+    }
+
+    if (currentBlock) {
+      blocks.push(currentBlock);
+    }
+
+    // Helper to parser inline bold (**), italic (*), and inline code (`) using token mapping
+    const parseInlineElements = (txt: string): React.ReactNode => {
+      if (!txt) return '';
+      let parts: (string | React.ReactNode)[] = [txt];
+
+      // 1. Inline code: `code`
+      parts = parts.flatMap(part => {
+        if (typeof part !== 'string') return part;
+        if (!part.includes('`')) return part;
+        const sub = part.split('`');
+        return sub.map((s, idx) => {
+          if (idx % 2 === 1) {
+            return (
+              <code
+                key={`code-${idx}`}
+                className="px-1.5 py-0.5 rounded font-mono text-[10px] bg-black/10 dark:bg-white/10 text-[#E25C5C] dark:text-[#F27C7C]"
+              >
+                {s}
+              </code>
+            );
+          }
+          return s;
+        });
+      });
+
+      // 2. Bold: **bold**
+      parts = parts.flatMap(part => {
+        if (typeof part !== 'string') return part;
+        if (!part.includes('**')) return part;
+        const sub = part.split('**');
+        return sub.map((s, idx) => {
+          if (idx % 2 === 1) {
+            return (
+              <strong
+                key={`bold-${idx}`}
+                className={cn("font-extrabold", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}
+              >
+                {s}
+              </strong>
+            );
+          }
+          return s;
+        });
+      });
+
+      // 3. Italic: *italic*
+      parts = parts.flatMap(part => {
+        if (typeof part !== 'string') return part;
+        if (!part.includes('*')) return part;
+        const sub = part.split('*');
+        return sub.map((s, idx) => {
+          if (idx % 2 === 1) {
+            return (
+              <em key={`italic-${idx}`} className="italic">
+                {s}
+              </em>
+            );
+          }
+          return s;
+        });
+      });
+
+      return <>{parts}</>;
+    };
+
+    // 2. Render blocks to React JSX nodes
     return (
-      <div className="space-y-2">
-        {lines.map((line, lineIdx) => {
-          let content: React.ReactNode = line;
-          let isHeader = false;
-          let isListItem = false;
+      <div className="space-y-2.5">
+        {blocks.map((block, blockIdx) => {
+          switch (block.type) {
+            case 'header': {
+              const level = block.level || 1;
+              const content = parseInlineElements(block.content || '');
+              if (level === 1) {
+                return (
+                  <h2 key={blockIdx} className={cn("text-base font-extrabold my-2", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}>
+                    {content}
+                  </h2>
+                );
+              }
+              if (level === 2) {
+                return (
+                  <h3 key={blockIdx} className={cn("text-sm font-bold my-1.5", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}>
+                    {content}
+                  </h3>
+                );
+              }
+              // Level 3+ gets Sparkles icon if from assistant
+              return (
+                <h4
+                  key={blockIdx}
+                  className={cn(
+                    "font-bold text-xs border-b pb-1 mb-2 mt-3 flex items-center gap-1.5",
+                    isUser ? "text-white border-white/20" : "text-[#0A0E1A] dark:text-[#E2E8F0] border-[#E6E9EE] dark:border-white/10"
+                  )}
+                >
+                  {!isUser && <Sparkles className="h-3 w-3 text-[#3199E4] flex-none" />}
+                  {content}
+                </h4>
+              );
+            }
 
-          if (line.trim().startsWith('### ')) {
-            isHeader = true;
-            const headerText = line.trim().substring(4).trim();
-            content = parseBoldText(headerText, isUser);
-          } else if (line.trim().startsWith('* ') || line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
-            isListItem = true;
-            const bulletRegex = /^\s*[\*\-•]\s+/;
-            const itemText = line.replace(bulletRegex, '');
-            content = parseBoldText(itemText, isUser);
-          } else {
-            content = parseBoldText(line, isUser);
+            case 'list':
+              return (
+                <ul key={blockIdx} className={cn("ml-4 pl-1 list-disc space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#36404F] dark:text-[#A0AEC0]")}>
+                  {block.items?.map((item, itemIdx) => (
+                    <li key={itemIdx}>{parseInlineElements(item)}</li>
+                  ))}
+                </ul>
+              );
+
+            case 'ordered-list':
+              return (
+                <ol key={blockIdx} className={cn("ml-4 pl-1 list-decimal space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#36404F] dark:text-[#A0AEC0]")}>
+                  {block.items?.map((item, itemIdx) => (
+                    <li key={itemIdx}>{parseInlineElements(item)}</li>
+                  ))}
+                </ol>
+              );
+
+            case 'table': {
+              const hasRows = block.rows && block.rows.length > 0;
+              return (
+                <div key={blockIdx} className="my-3 overflow-x-auto rounded-xl border border-[#E6E9EE] dark:border-[#2D3748] shadow-sm select-text scrollbar-none">
+                  <table className="min-w-full divide-y divide-[#E6E9EE] dark:divide-[#2D3748] text-[10px]">
+                    <thead>
+                      <tr className="bg-[#F5F7FA] dark:bg-[#1A202C]">
+                        {block.headers?.map((header, headIdx) => (
+                          <th
+                            key={headIdx}
+                            className="px-3 py-2 text-left font-bold text-[#36404F] dark:text-[#A0AEC0] whitespace-nowrap"
+                          >
+                            {parseInlineElements(header)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    {hasRows && (
+                      <tbody className="divide-y divide-[#E6E9EE] dark:divide-[#2D3748]">
+                        {block.rows?.map((row, rowIdx) => (
+                          <tr
+                            key={rowIdx}
+                            className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-75"
+                          >
+                            {row.map((cell, cellIdx) => (
+                              <td
+                                key={cellIdx}
+                                className="px-3 py-2 text-[#36404F] dark:text-[#E2E8F0] whitespace-nowrap"
+                              >
+                                {parseInlineElements(cell)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    )}
+                  </table>
+                </div>
+              );
+            }
+
+            case 'code-block':
+              return <CodeBlock key={blockIdx} content={block.content || ''} language={block.language} />;
+
+            case 'paragraph':
+            default:
+              return (
+                <p
+                  key={blockIdx}
+                  className={cn(
+                    "text-xs leading-relaxed min-h-[1em] my-1",
+                    isUser ? "text-white" : "text-[#36404F] dark:text-[#E2E8F0]"
+                  )}
+                >
+                  {parseInlineElements(block.content || '')}
+                </p>
+              );
           }
-
-          if (isHeader) {
-            return (
-              <h4 key={lineIdx} className={cn(
-                "font-bold text-sm border-b pb-1 mb-2 mt-3 flex items-center gap-1.5",
-                isUser ? "text-white border-white/20" : "text-[#0A0E1A] border-[#E6E9EE]"
-              )}>
-                {!isUser && <Sparkles className="h-3.5 w-3.5 text-[#3199E4] flex-none" />}
-                {content}
-              </h4>
-            );
-          }
-
-          if (isListItem) {
-            return (
-              <li key={lineIdx} className={cn(
-                "ml-4 list-disc pl-1 text-xs leading-relaxed my-0.5",
-                isUser ? "text-white/90" : "text-[#36404F]"
-              )}>
-                {content}
-              </li>
-            );
-          }
-
-          return (
-            <p key={lineIdx} className={cn(
-              "text-xs leading-relaxed min-h-[1em]",
-              isUser ? "text-white" : "text-[#36404F]"
-            )}>
-              {content}
-            </p>
-          );
         })}
       </div>
     );

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getMerchantDashboardData } from '@/lib/data';
+import { askGemini } from '@/lib/gemini';
 
 const SARVAM_AGENT_URL = process.env.SARVAM_AGENT_URL || 'http://localhost:3001/api/chat';
 
@@ -27,32 +29,43 @@ export async function POST(request: Request) {
     }
 
     const agentHistory = translateHistory(history || []);
+    let reply = '';
 
-    const agentRes = await fetch(SARVAM_AGENT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: prompt,
-        history: agentHistory,
-        merchantId,
-      }),
-    });
+    try {
+      const agentRes = await fetch(SARVAM_AGENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: prompt,
+          history: agentHistory,
+          merchantId,
+        }),
+      });
 
-    if (!agentRes.ok) {
-      const errorBody = await agentRes.json().catch(() => ({}));
-      console.error('[Chat proxy] Agent error:', agentRes.status, errorBody);
-      return NextResponse.json(
-        { error: errorBody.error || 'Agent request failed', details: errorBody.details },
-        { status: agentRes.status }
-      );
+      if (!agentRes.ok) {
+        const errorBody = await agentRes.json().catch(() => ({}));
+        console.warn('[Chat proxy] Agent error, falling back to Gemini API:', agentRes.status, errorBody);
+        throw new Error('Sarvam agent returned non-ok status');
+      }
+
+      const resData = await agentRes.json();
+      reply = resData.reply;
+    } catch (error) {
+      console.log('[Chat proxy] Calling local Gemini fallback...');
+      const data = getMerchantDashboardData(merchantId);
+      if (!data) {
+        return NextResponse.json(
+          { error: `Merchant ${merchantId} not found` },
+          { status: 404 }
+        );
+      }
+      reply = await askGemini(prompt, data, history || []);
     }
-
-    const { reply } = await agentRes.json();
 
     // Return as { answer } to preserve the existing frontend contract
     return NextResponse.json({ answer: reply });
   } catch (error) {
-    console.error('[Chat proxy] Error:', error);
+    console.error('[Chat proxy] Global Error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }
