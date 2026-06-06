@@ -144,11 +144,20 @@ Guidelines:
    - Settlements, payouts, delays → get_settlement_summary
    - Overall daily or monthly summary → get_recap`;
 
-function getSystemPrompt(language = 'en-IN') {
+const VOICE_ADDON = '\n\nIMPORTANT — VOICE MODE: This response will be read aloud via text-to-speech. Write in plain conversational prose only. No markdown — no asterisks, no hashes, no bullet dashes, no backticks, no bold, no headers. Use short natural sentences as if speaking directly to the merchant.';
+
+function getSystemPrompt(language = 'en-IN', voiceMode = false) {
+  let prompt = BASE_SYSTEM_PROMPT;
+
   if (language === 'hi-IN') {
-    return BASE_SYSTEM_PROMPT + '\n\nIMPORTANT: The merchant has selected Hindi as their preferred language. Respond ENTIRELY in Hindi using Devanagari script. All insights, numbers, and recommendations must be in Hindi. Format numbers in Indian style (e.g., ₹1,00,000).';
+    prompt += '\n\nIMPORTANT: The merchant has selected Hindi as their preferred language. Respond ENTIRELY in Hindi using Devanagari script. All insights, numbers, and recommendations must be in Hindi. Format numbers in Indian style (e.g., ₹1,00,000).';
   }
-  return BASE_SYSTEM_PROMPT;
+
+  if (voiceMode) {
+    prompt += VOICE_ADDON;
+  }
+
+  return prompt;
 }
 
 module.exports = { toolDefinitions, executeTool, getSystemPrompt };

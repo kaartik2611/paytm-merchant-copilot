@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const { message, history = [], merchantId, language = 'en-IN' } = req.body;
+    const { message, history = [], merchantId, language = 'en-IN', voiceMode = false } = req.body;
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
 
     // Keep last 10 messages (5 turns) for multi-turn context
     const messages = [
-      { role: "system", content: getSystemPrompt(language) },
+      { role: "system", content: getSystemPrompt(language, voiceMode) },
       ...history.slice(-10),
       { role: "user", content: message },
     ];

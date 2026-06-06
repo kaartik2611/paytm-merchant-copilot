@@ -19,7 +19,7 @@ function translateHistory(
 
 export async function POST(request: Request) {
   try {
-    const { merchantId, prompt, history, language } = await request.json();
+    const { merchantId, prompt, history, language, voiceMode } = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'prompt is required.' }, { status: 400 });
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       const agentRes = await fetch(SARVAM_AGENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt, history: agentHistory, merchantId, language }),
+        body: JSON.stringify({ message: prompt, history: agentHistory, merchantId, language, voiceMode }),
       });
 
       if (!agentRes.ok) {
