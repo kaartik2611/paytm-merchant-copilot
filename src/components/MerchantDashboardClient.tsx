@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Store, Utensils, Activity, Smartphone, Shirt, 
-  TrendingUp, TrendingDown, Users, AlertTriangle, 
+import {
+  ArrowLeft, Store, Utensils, Activity, Smartphone, Shirt,
+  TrendingUp, TrendingDown, Users, AlertTriangle,
   Clock, FileText, Send, Sparkles, ShieldAlert,
-  Loader2, ClipboardCheck, Calendar, CheckCircle, ChevronRight, Mic, Volume2
+  Loader2, ClipboardCheck, Calendar, CheckCircle, ChevronRight, Mic, MicOff, Volume2, VolumeX
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   BarChart, Bar, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line
 } from 'recharts';
 import { MerchantDashboardData } from '@/lib/data';
@@ -48,6 +48,13 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceReply, setVoiceReply] = useState('');
 
+  // Voice language + mode state
+  const [voiceLang, setVoiceLang] = useState<'en-IN' | 'hi-IN'>('en-IN');
+  const [voiceMode, setVoiceMode] = useState(false); // auto-play TTS for each AI reply
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+
   const availableRecapDates = revenue.dailyTrends.slice(-10).map(t => t.date).reverse();
 
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -64,7 +71,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
   // Rich Markdown parser structures and components
   // Supported features: Headers (#, ##, ###), lists (*, -, 1.), tables (|), code blocks (```) with Copy button, inline bold (**), italic (*), and code (`)
-  
+
   const renderFormattedText = (text: string, isUser: boolean) => {
     interface MarkdownBlock {
       type: 'paragraph' | 'header' | 'list' | 'ordered-list' | 'table' | 'code-block';
@@ -231,10 +238,12 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
       blocks.push(currentBlock);
     }
 
-    // Helper to parser inline bold (**), italic (*), and inline code (`) using token mapping
+    // Helper to parse inline bold (**), italic (*), and inline code (`) using token mapping.
+    // Uses a shared counter so keys are globally unique across all flatMap iterations.
     const parseInlineElements = (txt: string): React.ReactNode => {
       if (!txt) return '';
       let parts: (string | React.ReactNode)[] = [txt];
+      let keyCounter = 0;
 
       // 1. Inline code: `code`
       parts = parts.flatMap(part => {
@@ -245,7 +254,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           if (idx % 2 === 1) {
             return (
               <code
-                key={`code-${idx}`}
+                key={`code-${keyCounter++}`}
                 className="px-1.5 py-0.5 rounded font-mono text-[10px] bg-black/10 dark:bg-white/10 text-[#E25C5C] dark:text-[#F27C7C]"
               >
                 {s}
@@ -265,7 +274,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           if (idx % 2 === 1) {
             return (
               <strong
-                key={`bold-${idx}`}
+                key={`bold-${keyCounter++}`}
                 className={cn("font-extrabold", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}
               >
                 {s}
@@ -284,7 +293,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
         return sub.map((s, idx) => {
           if (idx % 2 === 1) {
             return (
-              <em key={`italic-${idx}`} className="italic">
+              <em key={`italic-${keyCounter++}`} className="italic">
                 {s}
               </em>
             );
@@ -418,7 +427,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
   const handleDateChange = (date: string) => {
     setSelectedRecapDate(date);
     setRecapLoading(true);
-    
+
     fetch(`/api/recap?merchantId=${merchant.merchantId}&date=${date}`)
       .then(res => res.json())
       .then(resData => {
@@ -434,7 +443,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
   // Chat submit handler
   const handleSendChat = async (text: string) => {
     if (!text.trim() || chatLoading) return;
-    
+
     const userMessage: ChatMessage = {
       id: Math.random().toString(),
       role: 'user',
@@ -457,18 +466,25 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
         body: JSON.stringify({
           merchantId: merchant.merchantId,
           prompt: text,
-          history: chatHistory
+          history: chatHistory,
+          language: voiceLang,
         })
       });
 
       const resData = await res.json();
-      
+
       if (resData.answer) {
         setMessages(prev => [...prev, {
           id: Math.random().toString(),
           role: 'model',
           text: resData.answer
         }]);
+        setVoiceReply(resData.answer);
+        if (voiceMode || showVoiceOverlay) {
+          setVoiceStatus('responding');
+          await playTTS(resData.answer);
+          setVoiceStatus('idle');
+        }
       } else {
         throw new Error('No answer received');
       }
@@ -484,23 +500,77 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
     }
   };
 
-  // Voice Assistant flow simulation
+  // Open voice overlay (resets state)
   const triggerVoiceAssistant = () => {
     setShowVoiceOverlay(true);
-    setVoiceStatus('listening');
-    setVoiceTranscript('How is my business looking today?');
+    setVoiceStatus('idle');
+    setVoiceTranscript('');
     setVoiceReply('');
+  };
 
-    // Simulate speech-to-text
-    setTimeout(() => {
-      setVoiceStatus('processing');
-      
-      // Simulate answer generation
-      setTimeout(() => {
-        setVoiceStatus('responding');
-        setVoiceReply(`Good morning! ${merchant.name} is performing steadily. Today's daily recap shows ₹${latestDailyRecap.revenue.toLocaleString('en-IN')} collection across ${latestDailyRecap.transactionsCount} scans. Your settlement risk is LOW, with standard payout batch clearances.`);
-      }, 1500);
-    }, 2000);
+  // Strip markdown for clean TTS input
+  const stripMarkdown = (text: string) =>
+    text.replace(/#{1,6}\s+/g, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '').replace(/\n{2,}/g, '. ').replace(/\n/g, ' ').trim();
+
+  // Play TTS audio for a given text + language
+  const playTTS = async (text: string) => {
+    try {
+      const res = await fetch('/api/voice/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: stripMarkdown(text).slice(0, 500), language: voiceLang }),
+      });
+      const { audio } = await res.json();
+      if (audio) new Audio(`data:audio/wav;base64,${audio}`).play();
+    } catch (e) {
+      console.error('TTS error', e);
+    }
+  };
+
+  // Start microphone recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mr = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setVoiceStatus('processing');
+        const fd = new FormData();
+        fd.append('audio', blob, `rec.${mimeType.includes('webm') ? 'webm' : 'mp4'}`);
+        fd.append('language', voiceLang);
+        try {
+          const res = await fetch('/api/voice/stt', { method: 'POST', body: fd });
+          const { transcript } = await res.json();
+          if (transcript) {
+            setVoiceTranscript(transcript);
+            setVoiceStatus('responding');
+            await handleSendChat(transcript);
+          } else {
+            setVoiceStatus('idle');
+          }
+        } catch {
+          setVoiceStatus('idle');
+        }
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+      setVoiceStatus('listening');
+      setVoiceTranscript('');
+      setVoiceReply('');
+    } catch {
+      alert('Microphone access denied. Please allow microphone access in your browser settings.');
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    setIsRecording(false);
   };
 
   // Helper to select icon based on category
@@ -585,8 +655,8 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
-            onClick={triggerVoiceAssistant} 
+          <button
+            onClick={triggerVoiceAssistant}
             className="pt-btn pt-btn--sm pt-btn--secondary flex items-center gap-1.5 font-bold"
           >
             <Mic className="h-3.5 w-3.5" />
@@ -600,7 +670,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
       {/* Main Layout Grid */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-[22px] py-6 flex flex-col gap-6">
-        
+
         {/* 2. SUB HEADER (Welcome name + Action AI button) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -656,13 +726,13 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
         </div>
 
         {/* TAB content loader */}
-        
+
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
             {/* Paytm Collection Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              
+
               {/* Stat 1: Collections */}
               <div className="pt-cardshell p-5 relative overflow-hidden">
                 <div className="text-[12px] font-bold text-[#5A6473] uppercase tracking-wide">30D collections</div>
@@ -712,7 +782,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
             {/* AI Cards Grid (Speciment Spec) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              
+
               {/* AI Insight Spec Card */}
               <div className="ai-card ai-card--rail" style={{ '--_accent': 'var(--cat-growth)' } as any}>
                 <div className="ai-card__head">
@@ -734,10 +804,10 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                 </div>
                 <div className="ai-insight__spark mt-4">
                   {peakHours.hourlyStats.slice(6, 22).map((h, i) => (
-                    <i 
-                      key={i} 
-                      className={h.hour === peakHours.peakHours[0] ? 'is-peak' : ''} 
-                      style={{ height: `${Math.max(12, (h.revenue / Math.max(...peakHours.hourlyStats.map(s => s.revenue))) * 100)}%` }} 
+                    <i
+                      key={i}
+                      className={h.hour === peakHours.peakHours[0] ? 'is-peak' : ''}
+                      style={{ height: `${Math.max(12, (h.revenue / Math.max(...peakHours.hourlyStats.map(s => s.revenue))) * 100)}%` }}
                     />
                   ))}
                 </div>
@@ -757,7 +827,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   </div>
                   <span className="ai-card__eyebrow">Paytm Action Recommendation</span>
                 </div>
-                
+
                 <div className="ai-reco mt-2">
                   <div className="space-y-3 flex-1">
                     <h3 className="text-[15px] font-bold text-[#0A0E1A]">
@@ -774,7 +844,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
                 <div className="ai-card__foot mt-6">
                   {renderConfidenceMeter('medium')}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('copilot');
                       setMessages(prev => [...prev, {
@@ -783,7 +853,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                         text: "How do I setup a Paytm Loyalty Stamp Card campaign?"
                       }]);
                       handleSendChat("How do I setup a Paytm Loyalty Stamp Card campaign?");
-                    }} 
+                    }}
                     className="ai-card__spacer pt-btn pt-btn--sm pt-btn--primary font-bold text-xs"
                   >
                     Setup Campaign
@@ -806,8 +876,8 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   We predicted delay risks for pending settlements. Currently, **{settlements.delayPredictions.length} payout** (SET092 for ₹{settlements.totalPendingAmount.toLocaleString('en-IN')}) has been pending for over 24 hours.
                 </p>
                 <div className="ai-risk__actions flex justify-end gap-3.5 mt-5">
-                  <button 
-                    onClick={() => setActiveTab('settlements')} 
+                  <button
+                    onClick={() => setActiveTab('settlements')}
                     className="pt-btn pt-btn--sm pt-btn--navy font-bold text-xs"
                   >
                     Investigate Ledger
@@ -823,7 +893,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   </div>
                   <span className="ai-card__eyebrow">Health Index Specimen</span>
                 </div>
-                
+
                 <div className="flex items-center gap-6 mt-3">
                   <div className="h-20 w-20 rounded-full border-4 border-[#E6E9EE] flex flex-col items-center justify-center flex-none">
                     <span className="text-2xl font-black text-[#0A0E1A]">{revenue.healthScore}</span>
@@ -838,7 +908,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
                 <div className="ai-card__foot mt-6">
                   {renderConfidenceMeter('high')}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('copilot');
                       setMessages(prev => [...prev, {
@@ -847,7 +917,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                         text: "Explain my Merchant Health Score components."
                       }]);
                       handleSendChat("Explain my Merchant Health Score components.");
-                    }} 
+                    }}
                     className="ai-card__spacer pt-btn pt-btn--sm pt-btn--secondary font-bold text-xs"
                   >
                     View Components
@@ -868,8 +938,8 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                       <AreaChart data={revenue.dailyTrends}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3199E4" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="#3199E4" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#3199E4" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#3199E4" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#E6E9EE" />
@@ -945,7 +1015,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                     Historical actual collection levels are plotted in <span className="text-[#3199E4] font-semibold">Solid Blue</span>. The estimated forecast projections are plotted in <span className="text-[#00BAF2] font-semibold">Dashed Cyan</span>.
                   </p>
                 </div>
-                
+
                 <div className="h-[380px] w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={combinedForecastChartData}>
@@ -1149,7 +1219,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
             {/* Gauge and ledger */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Gauge and delay warnings */}
               <div className="pt-cardshell p-6 flex flex-col items-center justify-between text-center">
                 <div className="w-full">
@@ -1168,14 +1238,14 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   <span className={cn(
                     "text-[10px] font-bold px-3 py-1 rounded-full border uppercase tracking-wider",
                     settlements.riskLevel === 'LOW' ? 'text-[#1F8A4C] border-[#1F8A4C]/10 bg-[#E4F6EC]' :
-                    settlements.riskLevel === 'MEDIUM' ? 'text-[#C77A12] border-[#C77A12]/10 bg-[#FCF1DD]' :
-                    'text-[#D63B3B] border-[#D63B3B]/10 bg-[#FCE7E7]'
+                      settlements.riskLevel === 'MEDIUM' ? 'text-[#C77A12] border-[#C77A12]/10 bg-[#FCF1DD]' :
+                        'text-[#D63B3B] border-[#D63B3B]/10 bg-[#FCE7E7]'
                   )}>
                     {settlements.riskLevel} RISK PIPELINE
                   </span>
                   <p className="text-xs text-[#36404F] font-medium leading-relaxed max-w-[200px] mx-auto">
-                    {settlements.riskScore > 30 
-                      ? "Warning: bank clearance delays are elevated. Toggle Instant Settlements." 
+                    {settlements.riskScore > 30
+                      ? "Warning: bank clearance delays are elevated. Toggle Instant Settlements."
                       : "Payout pipeline is operational. Batches clear on-schedule."}
                   </p>
                 </div>
@@ -1193,9 +1263,9 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                           <span className={cn(
                             "text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
                             sett.status === 'SETTLED' ? 'bg-[#E4F6EC] text-[#1F8A4C]' :
-                            sett.status === 'DELAYED' ? 'bg-[#FCF1DD] text-[#C77A12]' :
-                            sett.status === 'PENDING' ? 'bg-[#E2F0FC] text-[#3199E4] animate-pulse' :
-                            'bg-[#FCE7E7] text-[#D63B3B]'
+                              sett.status === 'DELAYED' ? 'bg-[#FCF1DD] text-[#C77A12]' :
+                                sett.status === 'PENDING' ? 'bg-[#E2F0FC] text-[#3199E4] animate-pulse' :
+                                  'bg-[#FCE7E7] text-[#D63B3B]'
                           )}>
                             {sett.status}
                           </span>
@@ -1228,7 +1298,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   </h3>
                   <p className="text-xs text-[#5A6473] font-medium">View detailed transactional performance metrics for any past date</p>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <span className="text-[#5A6473]">Select Date:</span>
                   <select
@@ -1255,7 +1325,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                       <h4 className="text-xs font-bold text-[#5A6473] uppercase tracking-wider">Operational Report &bull; {dailyRecapData.date}</h4>
                       <p className="text-[10px] text-[#7E8794] font-medium mt-0.5">Paytm Merchant Operations Engine</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         const reportText = `Daily Report (${dailyRecapData.date}) for ${merchant.name}\nRevenue: ₹${dailyRecapData.revenue}\nTransactions: ${dailyRecapData.transactionsCount}\nAvg Ticket: ₹${dailyRecapData.averageTicketSize}\nInsights:\n${dailyRecapData.insights.map(i => `- ${i}`).join('\n')}`;
                         navigator.clipboard.writeText(reportText);
@@ -1357,27 +1427,48 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
         {/* TAB 7: AI COPILOT CHAT (Specimen specification: light theme, white bubble, user blue bubble) */}
         {activeTab === 'copilot' && (
           <div className="pt-cardshell flex flex-col h-[580px] overflow-hidden relative">
-            
+
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#E6E9EE] px-5 py-3.5 bg-white select-none">
+            <div className="flex items-center justify-between border-b border-[#E6E9EE] px-5 py-3 bg-white select-none">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-[#1F8A4C] animate-pulse"></div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#36404F]">Paytm Copilot Brain</h3>
               </div>
-              <span className="text-[10px] text-[#3199E4] font-bold bg-[#E2F0FC] border border-[#3199E4]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Gemini-2.5-Flash Active
-              </span>
+              <div className="flex items-center gap-2">
+                {/* Language toggle */}
+                <div className="flex items-center bg-[#F0F2F5] rounded-full p-0.5 text-[10px] font-bold">
+                  <button
+                    onClick={() => setVoiceLang('en-IN')}
+                    className={cn('px-2.5 py-1 rounded-full transition-all', voiceLang === 'en-IN' ? 'bg-white text-[#0A0E1A] shadow-sm' : 'text-[#7E8794]')}
+                  >EN</button>
+                  <button
+                    onClick={() => setVoiceLang('hi-IN')}
+                    className={cn('px-2.5 py-1 rounded-full transition-all', voiceLang === 'hi-IN' ? 'bg-white text-[#0A0E1A] shadow-sm' : 'text-[#7E8794]')}
+                  >हि</button>
+                </div>
+                {/* Voice mode toggle */}
+                <button
+                  onClick={() => setVoiceMode(v => !v)}
+                  title={voiceMode ? 'Voice replies ON — click to mute' : 'Click to enable voice replies'}
+                  className={cn('p-1.5 rounded-full transition-all border', voiceMode ? 'bg-[#E2F0FC] border-[#3199E4]/30 text-[#3199E4]' : 'bg-[#F0F2F5] border-transparent text-[#7E8794]')}
+                >
+                  {voiceMode ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                </button>
+                <span className="text-[10px] text-[#3199E4] font-bold bg-[#E2F0FC] border border-[#3199E4]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Sarvam-30B Active
+                </span>
+              </div>
             </div>
 
             {/* Chat Stream (Light wash background) */}
             <div className="flex-1 bg-[#F5F7FA] overflow-y-auto px-5 py-4 space-y-4">
               {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={cn(
                     "ai-bubble",
-                    msg.role === 'user' 
-                      ? "ai-bubble--user" 
+                    msg.role === 'user'
+                      ? "ai-bubble--user"
                       : "ai-bubble--assistant"
                   )}
                 >
@@ -1419,7 +1510,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
             </div>
 
             {/* Composer */}
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendChat(chatInput);
@@ -1434,6 +1525,14 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                 disabled={chatLoading}
                 className="ai-chat__input"
               />
+              <button
+                type="button"
+                onClick={triggerVoiceAssistant}
+                title={`Voice input (${voiceLang === 'hi-IN' ? 'Hindi' : 'English'})`}
+                className={cn('p-2 rounded-xl transition-all border', 'bg-[#F0F2F5] border-transparent text-[#7E8794] hover:text-[#3199E4] hover:bg-[#E2F0FC]')}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
               <button
                 type="submit"
                 disabled={!chatInput.trim() || chatLoading}
@@ -1452,63 +1551,72 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
       {showVoiceOverlay && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end justify-center z-50 animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-t-[20px] p-6 shadow-xl flex flex-col items-center gap-6 border-t border-[#E6E9EE]">
-            
+
             {/* Header */}
             <div className="w-full flex justify-between items-center select-none border-b border-[#F0F2F5] pb-3">
               <span className="text-xs font-bold text-[#5A6473] uppercase tracking-wider flex items-center gap-2">
                 <Volume2 className="h-4 w-4 text-[#3199E4]" />
                 Paytm Voice Assistant
               </span>
-              <button 
-                onClick={() => {
-                  setShowVoiceOverlay(false);
-                  setVoiceStatus('idle');
-                }} 
-                className="text-xs text-[#7E8794] hover:text-[#0A0E1A] font-bold bg-[#F0F2F5] px-2.5 py-1 rounded-full transition-all"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Language toggle inside overlay */}
+                <div className="flex items-center bg-[#F0F2F5] rounded-full p-0.5 text-[10px] font-bold">
+                  <button onClick={() => setVoiceLang('en-IN')} className={cn('px-2.5 py-1 rounded-full transition-all', voiceLang === 'en-IN' ? 'bg-white text-[#0A0E1A] shadow-sm' : 'text-[#7E8794]')}>EN</button>
+                  <button onClick={() => setVoiceLang('hi-IN')} className={cn('px-2.5 py-1 rounded-full transition-all', voiceLang === 'hi-IN' ? 'bg-white text-[#0A0E1A] shadow-sm' : 'text-[#7E8794]')}>हि</button>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isRecording) stopRecording();
+                    setShowVoiceOverlay(false);
+                    setVoiceStatus('idle');
+                  }}
+                  className="text-xs text-[#7E8794] hover:text-[#0A0E1A] font-bold bg-[#F0F2F5] px-2.5 py-1 rounded-full transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
-            {/* Voice Orb (Specimen spec: background sheen, scale pulse) */}
+            {/* Voice Orb — tap to start / tap again to stop */}
             <div className="ai-voice flex flex-col items-center gap-4 w-full">
               <button
-                onClick={triggerVoiceAssistant}
-                disabled={voiceStatus === 'listening' || voiceStatus === 'processing'}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={voiceStatus === 'processing'}
                 className={cn(
                   "ai-orb focus:outline-none transition-transform active:scale-95",
-                  voiceStatus === 'listening' ? 'ai-orb--listening' :
-                  voiceStatus === 'processing' ? 'ai-orb--processing' : ''
+                  isRecording ? 'ai-orb--listening' :
+                    voiceStatus === 'processing' ? 'ai-orb--processing' : ''
                 )}
-                style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0 }}
-                title="Tap to speak"
+                style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 0 }}
+                title={isRecording ? 'Tap to stop recording' : 'Tap to speak'}
               >
-                {/* Secondary wave ring */}
                 <div className="ai-orb__ring r1"></div>
                 <div className="ai-orb__ring r2"></div>
-                {/* Main Core */}
                 <div className="ai-orb__core">
-                  <Mic className="h-10 w-10 text-white" />
+                  {isRecording
+                    ? <MicOff className="h-10 w-10 text-white" />
+                    : <Mic className="h-10 w-10 text-white" />
+                  }
                 </div>
               </button>
 
               {/* Status text */}
               <div className="ai-voice__status text-sm font-bold text-[#0A0E1A] uppercase tracking-wide">
-                {voiceStatus === 'listening' ? 'Listening to voice...' :
-                 voiceStatus === 'processing' ? 'Analyzing metrics...' :
-                 voiceStatus === 'responding' ? 'Responding...' : 'Tap Mic to Speak'}
+                {isRecording ? 'Recording — tap to stop' :
+                  voiceStatus === 'processing' ? 'Transcribing...' :
+                    voiceStatus === 'responding' ? 'Copilot is answering...' : `Tap mic to speak in ${voiceLang === 'hi-IN' ? 'Hindi' : 'English'}`}
               </div>
 
-              {/* Transcript details */}
+              {/* Transcript */}
               {voiceTranscript && (
                 <div className="bg-[#FAFBFC] border border-[#E6E9EE] rounded-xl p-3 w-full text-center text-xs text-[#36404F] leading-normal italic">
-                  "{voiceTranscript}"
+                  &ldquo;{voiceTranscript}&rdquo;
                 </div>
               )}
 
-              {/* Responses text */}
-              {voiceReply && (
-                <div className="bg-[#F4F9FE] border border-[#3199E4]/25 rounded-xl p-4 w-full text-[#0A0E1A] text-xs font-medium leading-relaxed shadow-sm">
+              {/* AI Reply */}
+              {voiceReply && voiceStatus !== 'processing' && (
+                <div className="bg-[#F4F9FE] border border-[#3199E4]/25 rounded-xl p-4 w-full text-[#0A0E1A] text-xs font-medium leading-relaxed shadow-sm max-h-40 overflow-y-auto">
                   {voiceReply}
                 </div>
               )}
@@ -1516,7 +1624,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
             {/* Voice suggestion chip */}
             <div className="w-full text-center text-[10px] text-[#7E8794] font-semibold uppercase tracking-wider mb-2 select-none">
-              Try: "How are my settlements clearing?"
+              {voiceLang === 'hi-IN' ? 'पूछें: "मेरा सबसे व्यस्त समय कब है?"' : 'Try: "How are my settlements clearing?"'}
             </div>
           </div>
         </div>

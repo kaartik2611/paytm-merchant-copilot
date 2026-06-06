@@ -125,7 +125,7 @@ function executeTool(name, args = {}, context = {}) {
   }
 }
 
-const SYSTEM_PROMPT = `You are the Paytm Merchant Intelligence Copilot, a senior business consultant and transactional analyst for small Indian merchants.
+const BASE_SYSTEM_PROMPT = `You are the Paytm Merchant Intelligence Copilot, a senior business consultant and transactional analyst for small Indian merchants.
 
 Your job is to help merchants understand their daily business operations, identify trends, and make data-driven decisions using their Paytm transaction and settlement data.
 
@@ -144,4 +144,11 @@ Guidelines:
    - Settlements, payouts, delays → get_settlement_summary
    - Overall daily or monthly summary → get_recap`;
 
-module.exports = { toolDefinitions, executeTool, SYSTEM_PROMPT };
+function getSystemPrompt(language = 'en-IN') {
+  if (language === 'hi-IN') {
+    return BASE_SYSTEM_PROMPT + '\n\nIMPORTANT: The merchant has selected Hindi as their preferred language. Respond ENTIRELY in Hindi using Devanagari script. All insights, numbers, and recommendations must be in Hindi. Format numbers in Indian style (e.g., ₹1,00,000).';
+  }
+  return BASE_SYSTEM_PROMPT;
+}
+
+module.exports = { toolDefinitions, executeTool, getSystemPrompt };
