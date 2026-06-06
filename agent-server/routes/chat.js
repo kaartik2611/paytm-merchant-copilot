@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { SarvamAIClient } = require("sarvamai");
-const { toolDefinitions, executeTool, SYSTEM_PROMPT } = require("../utils/agentTools");
+const { toolDefinitions, executeTool, getSystemPrompt } = require("../utils/agentTools");
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const { message, history = [], merchantId } = req.body;
+    const { message, history = [], merchantId, language = 'en-IN' } = req.body;
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
 
     // Keep last 10 messages (5 turns) for multi-turn context
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: getSystemPrompt(language) },
       ...history.slice(-10),
       { role: "user", content: message },
     ];
