@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Neutrals" subtitle="Ink ramp, hairlines and surfaces" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .sw { width: 92px; }
+  .chip { height: 60px; border-radius: var(--r-md); box-shadow: var(--elev-hairline); }
+  .name { font-size: 12px; font-weight: 600; color: var(--ink-900); margin: 8px 0 1px; }
+  .hex { font-size: 11px; color: var(--ink-500); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--ink-900)"></div><div class="name">Ink 900</div><div class="hex">#0A0E1A</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-700)"></div><div class="name">Ink 700</div><div class="hex">#36404F</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-600)"></div><div class="name">Ink 600</div><div class="hex">#5A6473</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-500)"></div><div class="name">Ink 500</div><div class="hex">#7E8794</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-300)"></div><div class="name">Ink 300</div><div class="hex">#C2C8D0</div></div>
+    <div class="sw"><div class="chip" style="background:var(--line-200)"></div><div class="name">Line 200</div><div class="hex">#E6E9EE</div></div>
+    <div class="sw"><div class="chip" style="background:var(--bg-page)"></div><div class="name">Page</div><div class="hex">#F5F7FA</div></div>
+  </div>
+</body>
+</html>

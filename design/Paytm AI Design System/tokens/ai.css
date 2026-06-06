@@ -1,0 +1,53 @@
+/* ============================================================
+   AI TOKENS — the layer that makes "Paytm AI" feel native.
+   Restrained, trust-forward. No neon. The AI identity reuses the
+   brand navy→blue→cyan, with a single soft "sheen" gradient
+   reserved for the assistant avatar / voice orb only.
+   ============================================================ */
+:root {
+  /* AI surfaces — assistant chrome sits on a faint blue wash, never
+     a dark "sci-fi" panel. */
+  --ai-surface:        #F4F9FE;
+  --ai-surface-strong: #E7F2FC;
+  --ai-border:         rgba(49, 153, 228, 0.22);
+  --ai-accent:         var(--paytm-blue);
+  --ai-on-accent:      #FFFFFF;
+
+  /* The ONE sanctioned AI gradient — assistant avatar, voice orb,
+     the small "sparkle" mark. Cyan→blue→navy, calm. */
+  --ai-sheen: linear-gradient(135deg, #00BAF2 0%, #3199E4 48%, #1F4D9E 100%); /* @kind color */
+  --ai-sheen-soft: linear-gradient(135deg, #DDF4FC 0%, #E2F0FC 100%); /* @kind color */
+
+  /* Assistant message bubble vs user bubble */
+  --ai-bubble-assistant: #FFFFFF;
+  --ai-bubble-user:      var(--paytm-blue);
+  --ai-bubble-user-text: #FFFFFF;
+
+  /* ---- Confidence indicators (explainability) ---- */
+  --confidence-high:   var(--success);
+  --confidence-high-tint: var(--success-tint);
+  --confidence-med:    var(--warning);
+  --confidence-med-tint:  var(--warning-tint);
+  --confidence-low:    var(--ink-500);
+  --confidence-low-tint:  var(--line-100);
+
+  /* ---- Risk / severity ladder ---- */
+  --sev-critical:      var(--danger-600);
+  --sev-critical-tint: var(--danger-tint);
+  --sev-high:          var(--danger-500);
+  --sev-high-tint:     var(--danger-tint);
+  --sev-medium:        var(--warning-500);
+  --sev-medium-tint:   var(--warning-tint);
+  --sev-low:           var(--info);
+  --sev-low-tint:      var(--info-tint);
+
+  /* ---- AI category accents (Insight / Recommendation / etc.) ---- */
+  --cat-insight:       var(--paytm-blue);
+  --cat-insight-tint:  var(--paytm-blue-050);
+  --cat-save:          var(--success);
+  --cat-save-tint:     var(--success-tint);
+  --cat-growth:        var(--paytm-cyan-600);
+  --cat-growth-tint:   var(--paytm-cyan-050);
+  --cat-risk:          var(--danger);
+  --cat-risk-tint:     var(--danger-tint);
+}

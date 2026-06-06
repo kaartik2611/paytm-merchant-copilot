@@ -1,0 +1,30 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Logo & app bar" subtitle="Wordmark on white and on the brand gradient header" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 22px; background: var(--surface); display: flex; gap: 22px; align-items: stretch; }
+  .panel { flex: 1; border-radius: var(--r-md); box-shadow: var(--elev-hairline); display: flex; align-items: center; justify-content: center; height: 150px; }
+  .grad { background: linear-gradient(180deg, var(--paytm-header-from), var(--paytm-header-to)); }
+  .cap { position: absolute; }
+  img.lg { height: 40px; }
+  .bar { width: 100%; height: 54px; display: flex; align-items: center; gap: 12px; padding: 0 14px; box-sizing: border-box; }
+  .ava { width: 34px; height: 34px; border-radius: 50%; background: #F26464; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .bar img { height: 24px; margin: 0 auto; }
+  .ic { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.25); }
+</style>
+</head>
+<body>
+  <div class="panel"><img class="lg" src="../assets/paytm-logo.png" alt="Paytm"></div>
+  <div class="panel grad" style="align-items:flex-start;padding-top:0">
+    <div class="bar">
+      <div class="ava">SR</div>
+      <img src="../assets/paytm-logo.png" alt="Paytm" style="filter:brightness(0) invert(1);height:22px">
+      <div class="ic"></div>
+      <div class="ic"></div>
+    </div>
+  </div>
+</body>
+</html>

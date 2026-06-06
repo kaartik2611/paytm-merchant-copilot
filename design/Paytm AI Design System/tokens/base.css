@@ -1,0 +1,30 @@
+/* ============================================================
+   BASE — light reset + element defaults so components and cards
+   render consistently. Scoped to be safe inside DS card frames.
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular figures wherever amounts appear */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* The rupee glyph — keep it crisp at small sizes */
+.rupee { font-family: var(--font-num); }
+
+button { font-family: inherit; }
+
+/* Utility: the signature Paytm card */
+.pt-card {
+  background: var(--surface-card);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-hairline);
+}

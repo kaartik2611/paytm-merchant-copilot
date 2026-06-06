@@ -1,0 +1,34 @@
+<!-- @dsCard group="Brand" viewport="700x210" name="Card & list patterns" subtitle="The hairline card, list row with chevron, and pill button" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 22px; background: var(--bg-page); display: flex; gap: 18px; font-family: var(--font-sans); }
+  .card { background: var(--surface); border-radius: var(--r-md); box-shadow: var(--elev-hairline); padding: 14px 16px; width: 300px; }
+  .title { font-size: 13px; font-weight: 700; color: var(--ink-900); margin-bottom: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); }
+  .row:last-child { border-bottom: 0; }
+  .ic { width: 30px; height: 30px; border-radius: 50%; background: var(--paytm-blue-100); flex: none; }
+  .rt { font-size: 15px; font-weight: 500; color: var(--ink-900); flex: 1; }
+  .chev { color: var(--ink-300); }
+  .link { color: var(--paytm-blue); font-size: 12px; font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 22px; border-radius: var(--r-pill); background: var(--paytm-blue); color: #fff; font-weight: 600; font-size: 15px; }
+  .pill.ghost { background: #fff; color: var(--paytm-blue); box-shadow: inset 0 0 0 1px var(--paytm-blue); }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Account &amp; History</div>
+    <div class="row"><div class="ic"></div><div class="rt">Personal Loan</div><div class="link">Apply Now</div></div>
+    <div class="row"><div class="ic"></div><div class="rt">Paytm Wallet</div><div class="chev">›</div></div>
+    <div class="row"><div class="ic"></div><div class="rt">Credit Card</div><div class="link">Apply now</div></div>
+  </div>
+  <div class="stack">
+    <div class="pill">Pay ₹2,500</div>
+    <div class="pill ghost">Activate</div>
+  </div>
+</body>
+</html>

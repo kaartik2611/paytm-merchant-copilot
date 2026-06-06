@@ -1,0 +1,58 @@
+/* ============================================================
+   SPACING · RADIUS · ELEVATION — Paytm AI Design System
+   The source file works on a tight ~4px grid. Cards round at
+   10px; pills/buttons at 20px+. The signature elevation is a
+   1px HAIRLINE (0 0 0 1px rgba(0,0,0,.1)) rather than a blurred
+   drop shadow — soft blue-tinted shadows appear only on floating
+   elements (the chat FAB, voice sheet).
+   ============================================================ */
+:root {
+  /* Spacing scale (4px base) */
+  --sp-0:  0; /* @kind spacing */
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  8px;
+  --sp-4:  12px;
+  --sp-5:  16px;
+  --sp-6:  20px;
+  --sp-7:  24px;
+  --sp-8:  32px;
+  --sp-9:  40px;
+  --sp-10: 48px;
+  --sp-12: 64px;
+
+  /* Layout */
+  --screen-pad: 14px;   /* horizontal gutter inside a 360 mobile frame */
+  --card-pad:   16px;
+  --card-gap:   12px;
+
+  /* Radii */
+  --r-xs:   4px;
+  --r-sm:   5px;   /* chips, inner tiles */
+  --r-md:   10px;  /* the default card radius */
+  --r-lg:   14px;  /* large sheets / AI cards */
+  --r-xl:   20px;  /* bottom sheets, big surfaces */
+  --r-pill: 999px; /* pill buttons, tags */
+  --r-circle: 50%;
+
+  /* Elevation */
+  --elev-hairline: 0 0 0 1px rgba(0, 0, 0, 0.10);          /* default card border */
+  --elev-hairline-brand: 0 0 0 1px rgba(49, 153, 228, 0.30);
+  --elev-1: 0 1px 2px rgba(16, 38, 76, 0.06), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-2: 0 4px 12px rgba(20, 51, 102, 0.10);            /* raised cards */
+  --elev-3: 0 8px 24px rgba(20, 51, 102, 0.14);            /* sheets, popovers */
+  --elev-fab: 0 6px 18px rgba(36, 128, 214, 0.34);         /* blue-tinted FAB */
+  --elev-soft-blue: 0 4px 16px rgba(176, 207, 235, 0.55);  /* Paytm soft blue glow */
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(49, 153, 228, 0.35);
+
+  /* Motion — Paytm UI is quick & calm: short eases, gentle fades,
+     no bounces on functional UI. The voice orb is the only looping
+     animation, and it breathes slowly. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* @kind other */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --dur-fast:   140ms; /* @kind other */
+  --dur-normal: 220ms; /* @kind other */
+  --dur-slow:   320ms; /* @kind other */
+}

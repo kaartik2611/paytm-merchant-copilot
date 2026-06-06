@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Semantic" subtitle="Success, warning, danger, info — with tints" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sw { width: 132px; }
+  .pair { display: flex; height: 60px; border-radius: var(--r-md); overflow: hidden; box-shadow: var(--elev-hairline); }
+  .pair > div { flex: 1; }
+  .name { font-size: 12px; font-weight: 600; color: var(--ink-900); margin: 8px 0 1px; }
+  .hex { font-size: 11px; color: var(--ink-500); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="pair"><div style="background:var(--success)"></div><div style="background:var(--success-tint)"></div></div><div class="name">Success</div><div class="hex">#1F8A4C · #E4F6EC</div></div>
+    <div class="sw"><div class="pair"><div style="background:var(--warning-500)"></div><div style="background:var(--warning-tint)"></div></div><div class="name">Warning</div><div class="hex">#E8990F · #FCF1DD</div></div>
+    <div class="sw"><div class="pair"><div style="background:var(--danger-500)"></div><div style="background:var(--danger-tint)"></div></div><div class="name">Danger</div><div class="hex">#E75555 · #FCE7E7</div></div>
+    <div class="sw"><div class="pair"><div style="background:var(--info)"></div><div style="background:var(--info-tint)"></div></div><div class="name">Info</div><div class="hex">#2480D6 · #E2F0FC</div></div>
+  </div>
+</body>
+</html>

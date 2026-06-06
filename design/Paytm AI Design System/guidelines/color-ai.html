@@ -1,0 +1,44 @@
+<!-- @dsCard group="Colors" viewport="700x210" name="AI · Confidence & severity" subtitle="The semantic ladders that power explainability and risk" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); font-family: var(--font-sans); }
+  .block { display: flex; gap: 28px; flex-wrap: wrap; }
+  .grp { }
+  .lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-500); margin-bottom: 10px; }
+  .items { display: flex; gap: 10px; }
+  .pill { display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .sheen { width: 132px; height: 56px; border-radius: var(--r-md); background: var(--ai-sheen); box-shadow: var(--elev-soft-blue); }
+  .cap { font-size: 11px; color: var(--ink-500); margin-top: 7px; }
+</style>
+</head>
+<body>
+  <div class="block">
+    <div class="grp">
+      <div class="lbl">Confidence</div>
+      <div class="items">
+        <div class="pill" style="background:var(--confidence-high-tint);color:var(--confidence-high)"><span class="dot" style="background:var(--confidence-high)"></span>High</div>
+        <div class="pill" style="background:var(--confidence-med-tint);color:var(--confidence-med)"><span class="dot" style="background:var(--confidence-med)"></span>Medium</div>
+        <div class="pill" style="background:var(--confidence-low-tint);color:var(--confidence-low)"><span class="dot" style="background:var(--confidence-low)"></span>Low</div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">Severity</div>
+      <div class="items">
+        <div class="pill" style="background:var(--sev-critical-tint);color:var(--sev-critical)"><span class="dot" style="background:var(--sev-critical)"></span>Critical</div>
+        <div class="pill" style="background:var(--sev-medium-tint);color:var(--sev-medium)"><span class="dot" style="background:var(--sev-medium)"></span>Medium</div>
+        <div class="pill" style="background:var(--sev-low-tint);color:var(--sev-low)"><span class="dot" style="background:var(--sev-low)"></span>Low</div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">AI sheen</div>
+      <div class="sheen"></div>
+      <div class="cap">The one sanctioned gradient — avatar & voice orb only</div>
+    </div>
+  </div>
+</body>
+</html>

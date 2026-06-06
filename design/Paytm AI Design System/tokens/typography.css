@@ -1,0 +1,58 @@
+/* ============================================================
+   TYPOGRAPHY — Inter, the Paytm product typeface.
+   Mobile-first scale measured from the source file (8/10/12/13/
+   15/16/20/24px) extended into a clean ramp. Weights: 400/500/
+   600/700. Paytm leans on Medium (500) for body and Bold (700)
+   for section titles — Semibold (600) bridges them.
+   ============================================================ */
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-num:  "Inter", system-ui, sans-serif; /* tabular numerals for ₹ */
+
+  /* Weights */
+  --fw-regular:  400; /* @kind font */
+  --fw-medium:   500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold:     700; /* @kind font */
+
+  /* Type scale (px) */
+  --fs-2xs: 10px;  /* micro labels, captions on chips */
+  --fs-xs:  12px;  /* helper text, list meta */
+  --fs-sm:  13px;  /* section titles in cards, body-sm */
+  --fs-md:  15px;  /* body, primary list rows */
+  --fs-lg:  16px;  /* screen titles */
+  --fs-xl:  20px;  /* prominent numbers, headers */
+  --fs-2xl: 24px;  /* hero amounts */
+  --fs-3xl: 32px;  /* display / big balances */
+
+  /* Line heights */
+  --lh-tight:   1.1; /* @kind other */
+  --lh-snug:    1.25; /* @kind other */
+  --lh-normal:  1.45; /* @kind other */
+  --lh-relaxed: 1.6; /* @kind other */
+
+  /* Letter spacing */
+  --ls-tight:  -0.01em; /* @kind other */
+  --ls-normal: 0; /* @kind other */
+  --ls-wide:   0.02em; /* @kind other */
+  --ls-caps:   0.06em; /* @kind other */
+}
+
+/* Optional helper classes — components mostly use the vars directly. */
+.t-display { font-family: var(--font-sans); font-weight: var(--fw-bold);
+  font-size: var(--fs-3xl); line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
+  color: var(--text-primary); }
+.t-title { font-family: var(--font-sans); font-weight: var(--fw-bold);
+  font-size: var(--fs-lg); line-height: var(--lh-snug); color: var(--text-primary); }
+.t-section { font-family: var(--font-sans); font-weight: var(--fw-bold);
+  font-size: var(--fs-sm); line-height: var(--lh-snug); color: var(--text-primary); }
+.t-body { font-family: var(--font-sans); font-weight: var(--fw-medium);
+  font-size: var(--fs-md); line-height: var(--lh-normal); color: var(--text-primary); }
+.t-body-sm { font-family: var(--font-sans); font-weight: var(--fw-medium);
+  font-size: var(--fs-sm); line-height: var(--lh-normal); color: var(--text-secondary); }
+.t-meta { font-family: var(--font-sans); font-weight: var(--fw-medium);
+  font-size: var(--fs-xs); line-height: var(--lh-normal); color: var(--text-muted); }
+.t-caps { font-family: var(--font-sans); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight); letter-spacing: var(--ls-caps);
+  text-transform: uppercase; color: var(--text-muted); }

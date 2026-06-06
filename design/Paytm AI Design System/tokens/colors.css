@@ -1,0 +1,81 @@
+/* ============================================================
+   COLORS — Paytm AI Design System
+   Anchored on the authentic Paytm wordmark (navy #002970 +
+   signature cyan #00BAF2) and reconciled with the working blues
+   measured from the source Figma file (#3199E4, #2480D6, #0E467A,
+   #132256, #577FCB …). Semantic + AI tokens layer on top.
+   ============================================================ */
+:root {
+  /* ---- Brand: blue family ---- */
+  --paytm-cyan:        #00BAF2; /* signature brand cyan (logo "tm") */
+  --paytm-cyan-600:    #03A1D6;
+  --paytm-cyan-100:    #DDF4FC;
+  --paytm-cyan-050:    #EEFAFE;
+
+  --paytm-blue:        #3199E4; /* UI accent — links, active, CTAs */
+  --paytm-blue-600:    #2480D6; /* header gradient bottom, pressed */
+  --paytm-blue-100:    #E2F0FC;
+  --paytm-blue-050:    #F2F8FE;
+
+  --paytm-navy:        #002970; /* logo "Pay", deepest brand navy */
+  --paytm-navy-800:    #0E467A; /* icon strokes, dark UI */
+  --paytm-navy-700:    #132256; /* ₹ coins, deep surfaces */
+  --paytm-periwinkle:  #577FCB; /* secondary accent */
+  --paytm-periwinkle-300: #859DD9;
+  --paytm-sky:         #B0CFEB; /* pale blue — tints, soft shadows */
+  --paytm-sky-100:     #EAF2FB;
+
+  /* Header gradient (top app bar) */
+  --paytm-header-from: #98B9D8;
+  --paytm-header-to:   #2480D6;
+
+  /* ---- Neutrals ---- */
+  --ink-900: #0A0E1A; /* near-black headings */
+  --ink-800: #1A2233;
+  --ink-700: #36404F;
+  --ink-600: #5A6473; /* secondary text */
+  --ink-500: #7E8794; /* muted / placeholder */
+  --ink-300: #C2C8D0; /* disabled */
+  --line-200: #E6E9EE; /* hairline dividers / borders */
+  --line-100: #F0F2F5;
+  --bg-page:  #F5F7FA; /* app canvas behind cards */
+  --bg-subtle:#FAFBFC;
+  --surface:  #FFFFFF; /* cards, sheets */
+  --off-white:#FAF1F1; /* warm off-white seen in source */
+
+  /* ---- Semantic ---- */
+  --success:      #1F8A4C;
+  --success-500:  #2BA45C;
+  --success-tint: #E4F6EC;
+  --success-fill: #7BDE84;
+
+  --warning:      #C77A12;
+  --warning-500:  #E8990F;
+  --warning-tint: #FCF1DD;
+
+  --danger:       #D63B3B;
+  --danger-500:   #E75555;
+  --danger-600:   #C32C2C;
+  --danger-tint:  #FCE7E7;
+
+  --info:         #2480D6;
+  --info-tint:    #E2F0FC;
+
+  /* ---- Semantic aliases ---- */
+  --text-primary:    var(--ink-900);
+  --text-secondary:  var(--ink-600);
+  --text-muted:      var(--ink-500);
+  --text-disabled:   var(--ink-300);
+  --text-on-brand:   #FFFFFF;
+  --text-link:       var(--paytm-blue);
+
+  --surface-card:    var(--surface);
+  --surface-page:    var(--bg-page);
+  --surface-sunken:  var(--bg-subtle);
+  --surface-brand:   var(--paytm-navy);
+  --surface-brand-soft: var(--paytm-blue-050);
+
+  --border-card:     rgba(0, 0, 0, 0.10); /* signature hairline */
+  --border-strong:   var(--line-200);
+  --divider:         rgba(0, 0, 0, 0.08);
+}

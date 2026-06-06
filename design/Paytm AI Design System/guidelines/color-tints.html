@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Brand · Tints & header" subtitle="Soft blues used for fills, sheets and the app-bar gradient" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface); }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  .sw { width: 104px; }
+  .chip { height: 64px; border-radius: var(--r-md); box-shadow: var(--elev-hairline); }
+  .name { font-size: 12px; font-weight: 600; color: var(--ink-900); margin: 8px 0 1px; }
+  .hex { font-size: 11px; color: var(--ink-500); font-variant-numeric: tabular-nums; }
+  .wide { width: 220px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--paytm-cyan-100)"></div><div class="name">Cyan 100</div><div class="hex">#DDF4FC</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paytm-blue-100)"></div><div class="name">Blue 100</div><div class="hex">#E2F0FC</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paytm-sky)"></div><div class="name">Sky</div><div class="hex">#B0CFEB</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paytm-sky-100)"></div><div class="name">Sky 100</div><div class="hex">#EAF2FB</div></div>
+    <div class="sw wide"><div class="chip" style="background:linear-gradient(180deg,var(--paytm-header-from),var(--paytm-header-to))"></div><div class="name">App-bar gradient</div><div class="hex">#98B9D8 → #2480D6</div></div>
+  </div>
+</body>
+</html>

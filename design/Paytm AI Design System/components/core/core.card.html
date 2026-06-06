@@ -1,0 +1,76 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Core — buttons, badges, chips" subtitle="Pill buttons, status badges, prompt chips, icon circles & avatars" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-sans); }
+  .grp { margin-bottom: 22px; }
+  .lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-500); margin-bottom: 12px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+  const { Button, Badge, Chip, IconCircle, Avatar } = window.PaytmAIDesignSystem_ea0928;
+  function Demo() {
+    return (
+      <>
+        <div className="grp">
+          <div className="lbl">Buttons</div>
+          <div className="row">
+            <Button variant="primary" icon="indian-rupee">Pay ₹2,500</Button>
+            <Button variant="secondary">Activate</Button>
+            <Button variant="ghost" iconRight="arrow-right">View details</Button>
+            <Button variant="navy" icon="shield-check">Verify</Button>
+            <Button variant="danger" size="md">Block</Button>
+            <Button variant="success" size="md" icon="check">Accept</Button>
+            <Button variant="primary" size="sm">Small</Button>
+            <Button variant="primary" disabled>Disabled</Button>
+          </div>
+        </div>
+        <div className="grp">
+          <div className="lbl">Badges</div>
+          <div className="row">
+            <Badge tone="ai" icon="sparkles">AI</Badge>
+            <Badge tone="success" dot>High confidence</Badge>
+            <Badge tone="warning" dot>Medium</Badge>
+            <Badge tone="danger" icon="shield-alert">Critical</Badge>
+            <Badge tone="info">UPI</Badge>
+            <Badge tone="brand">New</Badge>
+            <Badge tone="neutral">Default</Badge>
+          </div>
+        </div>
+        <div className="grp">
+          <div className="lbl">Chips · prompts</div>
+          <div className="row">
+            <Chip variant="ai" icon="sparkle">Where did my money go?</Chip>
+            <Chip icon="trending-up">Show sales trend</Chip>
+            <Chip icon="wallet">Check balance</Chip>
+          </div>
+        </div>
+        <div className="grp">
+          <div className="lbl">Icon circles &amp; avatars</div>
+          <div className="row">
+            <IconCircle icon="wallet" bg="var(--paytm-blue-100)" color="var(--paytm-navy-800)" />
+            <IconCircle icon="scan" bg="var(--paytm-cyan-100)" color="var(--paytm-cyan-600)" />
+            <IconCircle icon="shield-check" bg="var(--success-tint)" color="var(--success)" />
+            <IconCircle icon="alert-triangle" bg="var(--danger-tint)" color="var(--danger)" />
+            <Avatar initials="SR" bg="#F26464" />
+            <Avatar initials="MJ" bg="#7C5BD0" />
+            <Avatar initials="BK" bg="#E75555" size={44} />
+          </div>
+        </div>
+      </>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

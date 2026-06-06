@@ -1,0 +1,7 @@
+/* ============================================================
+   FONTS — Paytm uses Inter across the product (4 weights seen
+   in the source file: Regular 400, Medium 500, SemiBold 600,
+   Bold 700). Inter is loaded from Google Fonts; it is the brand
+   typeface, so this is a faithful match, not a substitution.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");

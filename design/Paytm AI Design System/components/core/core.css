@@ -1,0 +1,104 @@
+/* ============================================================
+   CORE COMPONENT STYLES — Paytm AI Design System
+   Class-based so hover/active/focus work and @dsCard HTML +
+   consumers pick them up through styles.css. Prefix: pt-
+   ============================================================ */
+
+/* ---------- Button ---------- */
+.pt-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  font-family: var(--font-sans); font-weight: var(--fw-semibold);
+  border: 0; cursor: pointer; white-space: nowrap; color: #fff;
+  border-radius: var(--r-pill);
+  transition: transform var(--dur-fast) var(--ease-standard),
+              background var(--dur-fast) var(--ease-standard),
+              box-shadow var(--dur-fast) var(--ease-standard),
+              opacity var(--dur-fast) var(--ease-standard);
+}
+.pt-btn:active { transform: scale(0.97); }
+.pt-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.pt-btn[disabled] { opacity: .45; pointer-events: none; }
+
+/* sizes */
+.pt-btn--lg { height: 48px; padding: 0 24px; font-size: var(--fs-md); }
+.pt-btn--md { height: 40px; padding: 0 18px; font-size: var(--fs-sm); }
+.pt-btn--sm { height: 32px; padding: 0 14px; font-size: var(--fs-xs); border-radius: var(--r-pill); }
+.pt-btn--block { width: 100%; }
+
+/* variants */
+.pt-btn--primary   { background: var(--paytm-blue); color: #fff; }
+.pt-btn--primary:hover { background: var(--paytm-blue-600); }
+.pt-btn--secondary { background: #fff; color: var(--paytm-blue); box-shadow: inset 0 0 0 1px var(--paytm-blue); }
+.pt-btn--secondary:hover { background: var(--paytm-blue-050); }
+.pt-btn--ghost     { background: transparent; color: var(--paytm-blue); }
+.pt-btn--ghost:hover { background: var(--paytm-blue-050); }
+.pt-btn--navy      { background: var(--paytm-navy); color: #fff; }
+.pt-btn--navy:hover { background: var(--paytm-navy-700); }
+.pt-btn--danger    { background: var(--danger-500); color: #fff; }
+.pt-btn--danger:hover { background: var(--danger-600); }
+.pt-btn--success   { background: var(--success); color: #fff; }
+.pt-btn--success:hover { background: var(--success-500); }
+.pt-btn--neutral   { background: var(--line-100); color: var(--ink-700); }
+.pt-btn--neutral:hover { background: var(--line-200); }
+
+/* ---------- Badge / Tag ---------- */
+.pt-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-sans); font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xs); line-height: 1;
+  padding: 5px 9px; border-radius: var(--r-pill);
+  background: var(--line-100); color: var(--ink-700);
+  white-space: nowrap;
+}
+.pt-badge .pt-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pt-badge--info    { background: var(--info-tint); color: var(--info); }
+.pt-badge--success { background: var(--success-tint); color: var(--success); }
+.pt-badge--warning { background: var(--warning-tint); color: var(--warning); }
+.pt-badge--danger  { background: var(--danger-tint); color: var(--danger); }
+.pt-badge--brand   { background: var(--paytm-cyan-100); color: var(--paytm-cyan-600); }
+.pt-badge--ai      { background: var(--ai-surface-strong); color: var(--paytm-blue); }
+.pt-badge--solid   { color: #fff; }
+
+/* ---------- Chip (suggested prompts, filters) ---------- */
+.pt-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-sans); font-weight: var(--fw-medium);
+  font-size: var(--fs-sm); color: var(--ink-800);
+  padding: 9px 14px; border-radius: var(--r-pill);
+  background: #fff; box-shadow: inset 0 0 0 1px var(--line-200);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-standard),
+              box-shadow var(--dur-fast) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-standard);
+}
+.pt-chip:hover { background: var(--paytm-blue-050); box-shadow: inset 0 0 0 1px var(--paytm-blue); }
+.pt-chip:active { transform: scale(0.97); }
+.pt-chip--ai { background: var(--ai-surface); box-shadow: inset 0 0 0 1px var(--ai-border); color: var(--paytm-blue-600); }
+
+/* ---------- Icon circle ---------- */
+.pt-iconcircle {
+  display: inline-grid; place-items: center; flex: none;
+  border-radius: 50%;
+  background: var(--paytm-blue-100); color: var(--paytm-navy-800);
+}
+
+/* ---------- Avatar ---------- */
+.pt-avatar {
+  display: inline-grid; place-items: center; flex: none;
+  border-radius: 50%; color: #fff; font-weight: var(--fw-bold);
+  font-family: var(--font-sans); overflow: hidden;
+}
+.pt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Section header ---------- */
+.pt-section { display: flex; align-items: center; gap: 10px; }
+.pt-section__title { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--ink-900); }
+.pt-section__action { margin-left: auto; font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--paytm-blue); cursor: pointer; }
+
+/* ---------- Card shell ---------- */
+.pt-cardshell {
+  background: var(--surface-card); border-radius: var(--r-md);
+  box-shadow: var(--elev-hairline);
+}
+.pt-cardshell--raised { box-shadow: var(--elev-2); }

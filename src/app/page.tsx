@@ -5,7 +5,6 @@ import { Store, Utensils, Activity, Smartphone, Shirt } from 'lucide-react';
 export default function Home() {
   const merchants = getMerchants();
 
-  // Pre-calculate revenue previews for each merchant
   const merchantsWithMetrics = merchants.map(m => {
     const txns = getTransactions(m.merchantId).filter(t => t.status === 'SUCCESS');
     const totalRevenue = txns.reduce((sum, t) => sum + t.amount, 0);
@@ -17,122 +16,140 @@ export default function Home() {
     };
   });
 
-  // Helper to select icon based on category
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Grocery Store':
-        return <Store className="h-5 w-5 text-emerald-400" />;
+        return <Store className="h-5 w-5 text-[#1F8A4C]" />;
       case 'Restaurant':
-        return <Utensils className="h-5 w-5 text-orange-400" />;
+        return <Utensils className="h-5 w-5 text-[#C77A12]" />;
       case 'Medical Store':
-        return <Activity className="h-5 w-5 text-rose-400" />;
+        return <Activity className="h-5 w-5 text-[#D63B3B]" />;
       case 'Electronics Store':
-        return <Smartphone className="h-5 w-5 text-cyan-400" />;
+        return <Smartphone className="h-5 w-5 text-[#3199E4]" />;
       case 'Clothing Store':
-        return <Shirt className="h-5 w-5 text-amber-400" />;
+        return <Shirt className="h-5 w-5 text-[#577FCB]" />;
       default:
-        return <Store className="h-5 w-5 text-blue-400" />;
+        return <Store className="h-5 w-5 text-[#002970]" />;
     }
   };
 
-  // Helper to select style classes for category badges
   const getCategoryStyles = (category: string) => {
     switch (category) {
       case 'Grocery Store':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        return 'bg-[#E4F6EC] text-[#1F8A4C] border-[#1F8A4C]/10';
       case 'Restaurant':
-        return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+        return 'bg-[#FCF1DD] text-[#C77A12] border-[#C77A12]/10';
       case 'Medical Store':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        return 'bg-[#FCE7E7] text-[#D63B3B] border-[#D63B3B]/10';
       case 'Electronics Store':
-        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+        return 'bg-[#E2F0FC] text-[#3199E4] border-[#3199E4]/10';
       case 'Clothing Store':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        return 'bg-[#EEFAFE] text-[#577FCB] border-[#577FCB]/10';
       default:
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        return 'bg-[#F0F2F5] text-[#36404F] border-slate-200';
     }
   };
 
   return (
-    <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12 flex flex-col justify-center">
-      {/* Header section */}
-      <div className="text-center mb-12 animate-float">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-brand-cyan mb-4 tracking-wide font-medium uppercase glow-border">
-          <span className="h-2 w-2 rounded-full bg-brand-cyan animate-pulse"></span>
-          Paytm Business Solutions
+    <main className="flex-1 flex flex-col min-h-screen bg-[#F5F7FA]">
+      {/* Authentic Paytm App Header Gradient Banner */}
+      <div className="bg-gradient-to-b from-[#98B9D8] to-[#2480D6] py-12 px-4 sm:px-6 lg:px-8 text-center text-white relative">
+        <div className="max-w-4xl mx-auto flex flex-col items-center">
+          {/* Paytm Wordmark Logo representation */}
+          <div className="flex items-center gap-1.5 mb-4 select-none">
+            <span className="text-3xl font-extrabold tracking-tight text-white">Pay</span>
+            <span className="text-3xl font-light tracking-tight text-[#00BAF2]">tm</span>
+            <span className="text-sm font-bold bg-white/20 px-2 py-0.5 rounded ml-2 border border-white/10 uppercase tracking-widest text-xs">
+              Business
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
+            Merchant Intelligence Portal
+          </h1>
+          <p className="text-sm text-white/90 max-w-xl font-medium leading-relaxed">
+            AI-Powered Operations, Settlement Forecasting, and Decision Support
+          </p>
         </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-brand-cyan to-brand-teal bg-clip-text text-transparent mb-4">
-          Paytm Merchant Intelligence Copilot
-        </h1>
-        <p className="text-lg text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
-          Unlock the power of your transactional data. Get daily recaps, settlement risk scoring, peak hour mapping, and an AI copilot to grow your business.
-        </p>
       </div>
 
-      {/* Grid selector */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {merchantsWithMetrics.map(merchant => (
-          <Link
-            key={merchant.merchantId}
-            href={`/merchant/${merchant.merchantId}`}
-            className="group flex flex-col rounded-2xl glass-panel p-6"
-            id={`merchant-link-${merchant.merchantId}`}
-          >
-            {/* Merchant Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-brand-cyan/40 transition-colors">
-                  {getCategoryIcon(merchant.category)}
+      {/* Main Grid Content */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="h-2 w-2 rounded-full bg-[#00BAF2] animate-pulse"></span>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[#5A6473]">
+            Select Merchant Account
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {merchantsWithMetrics.map(merchant => (
+            <Link
+              key={merchant.merchantId}
+              href={`/merchant/${merchant.merchantId}`}
+              className="group bg-white rounded-[10px] p-5 pt-card transition-all duration-200 border border-slate-100/40 hover:border-[#3199E4]/40 hover:-translate-y-0.5 hover:shadow-md"
+              id={`merchant-link-${merchant.merchantId}`}
+            >
+              {/* Card Head */}
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[#F0F2F5] border border-slate-200/60 group-hover:bg-[#E2F0FC] transition-colors">
+                    {getCategoryIcon(merchant.category)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[#0A0E1A] text-[15px] group-hover:text-[#3199E4] transition-colors line-clamp-1">
+                      {merchant.name}
+                    </h3>
+                    <p className="text-xs text-[#5A6473] font-medium">{merchant.city}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white text-lg group-hover:text-brand-cyan transition-colors line-clamp-1">
-                    {merchant.name}
-                  </h3>
-                  <p className="text-xs text-slate-400">{merchant.city}</p>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${getCategoryStyles(merchant.category)}`}>
+                  {merchant.category}
+                </span>
+              </div>
+
+              {/* Owner and Details */}
+              <div className="space-y-1.5 text-xs text-[#5A6473] font-medium">
+                <p className="flex justify-between">
+                  <span>Owner Name:</span>
+                  <span className="text-[#0A0E1A] font-semibold">{merchant.ownerName}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Joined Date:</span>
+                  <span className="text-[#7E8794]">
+                    {new Date(merchant.joinedDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}
+                  </span>
+                </p>
+              </div>
+
+              <div className="my-4 border-t border-[#F0F2F5]"></div>
+
+              {/* Aggregates Preview */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-[#FAFBFC] border border-[#F0F2F5] rounded-[5px] p-2 text-center">
+                  <span className="text-[9px] text-[#7E8794] font-semibold uppercase tracking-wider">30D Collection</span>
+                  <p className="text-sm font-bold text-[#0A0E1A] mt-0.5 tnum">
+                    ₹{merchant.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </p>
+                </div>
+                <div className="bg-[#FAFBFC] border border-[#F0F2F5] rounded-[5px] p-2 text-center">
+                  <span className="text-[9px] text-[#7E8794] font-semibold uppercase tracking-wider">Success Scans</span>
+                  <p className="text-sm font-bold text-[#0A0E1A] mt-0.5 tnum">{merchant.txnCount}</p>
                 </div>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${getCategoryStyles(merchant.category)}`}>
-                {merchant.category}
-              </span>
-            </div>
 
-            {/* Merchant info details */}
-            <div className="mt-2 space-y-1 text-sm text-slate-400 flex-1">
-              <p className="flex justify-between">
-                <span>Owner:</span>
-                <span className="text-slate-200 font-medium">{merchant.ownerName}</span>
-              </p>
-              <p className="flex justify-between">
-                <span>Joined Date:</span>
-                <span className="text-slate-350">{new Date(merchant.joinedDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}</span>
-              </p>
-            </div>
-
-            <div className="my-5 border-t border-slate-800/80"></div>
-
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="bg-slate-950/40 border border-slate-900 rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-slate-500 uppercase font-semibold">30D Revenue</p>
-                <p className="text-sm font-bold text-slate-100 mt-0.5">₹{merchant.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+              {/* Card Action Link */}
+              <div className="mt-4 flex items-center justify-end text-xs text-[#3199E4] font-bold group-hover:text-[#2480D6] transition-colors gap-1">
+                View Business Dashboard
+                <span className="transform translate-x-0 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
               </div>
-              <div className="bg-slate-950/40 border border-slate-900 rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-slate-500 uppercase font-semibold">Transactions</p>
-                <p className="text-sm font-bold text-slate-100 mt-0.5">{merchant.txnCount}</p>
-              </div>
-            </div>
-
-            {/* Action text */}
-            <div className="mt-4 flex items-center justify-end text-xs text-brand-cyan font-semibold group-hover:text-brand-teal transition-colors gap-1">
-              Analyze Merchant Dashboard
-              <span className="transform translate-x-0 group-hover:translate-x-1 transition-transform">&rarr;</span>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </div>
 
-      <footer className="text-center text-xs text-slate-500 mt-6 border-t border-slate-900 pt-6">
-        Paytm Merchant Intelligence Copilot &bull; Hackathon MVP Edition
+      <footer className="text-center text-[10px] font-bold text-[#7E8794] py-8 border-t border-[#E6E9EE] uppercase tracking-wider bg-white mt-12">
+        Paytm AI Design Extension &bull; 100% Secure Merchant Platform
       </footer>
     </main>
   );

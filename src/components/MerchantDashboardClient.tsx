@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Store, Utensils, Activity, Smartphone, Shirt, 
-  IndianRupee, TrendingUp, TrendingDown, Users, AlertTriangle, 
+  TrendingUp, TrendingDown, Users, AlertTriangle, 
   Clock, FileText, Send, Sparkles, ShieldAlert,
-  Loader2, ClipboardCheck, Calendar, CreditCard, ActivityIcon
+  Loader2, ClipboardCheck, Calendar, CheckCircle, ChevronRight, Mic, Volume2
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
@@ -37,16 +37,107 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
     {
       id: 'welcome',
       role: 'model',
-      text: `### Welcome to your **Paytm Merchant Intelligence Copilot** 🚀\n\nI have analyzed your digital transaction records for **${merchant.name}** for the last 30 days.\n\nYou can ask me questions about your revenue forecasting, operational health score, peak transaction hours, customer retention rates, or bank settlement status. Try one of the quick questions below!`
+      text: `### Welcome to your **Paytm Merchant Intelligence Copilot** 🚀\n\nI have parsed all scan logs for **${merchant.name}** for the last 30 days.\n\nYou can ask me questions about your revenue forecasting, operational health score, peak transaction hours, customer retention rates, or bank settlement status. Try one of the quick questions below!`
     }
   ]);
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Voice overlay state
+  const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'responding'>('idle');
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceReply, setVoiceReply] = useState('');
+
   const availableRecapDates = revenue.dailyTrends.slice(-10).map(t => t.date).reverse();
+
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'copilot') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, chatLoading, activeTab]);
+
+  // Simple markdown-style bold and list renderer to avoid raw '**' in chat UI
+  const parseBoldText = (text: string, isUser: boolean) => {
+    if (!text.includes('**')) return text;
+    const parts = text.split('**');
+    return parts.map((part, idx) => {
+      if (idx % 2 === 1) {
+        return (
+          <strong key={idx} className={cn(
+            "font-extrabold",
+            isUser ? "text-white" : "text-[#0A0E1A]"
+          )}>
+            {part}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedText = (text: string, isUser: boolean) => {
+    const lines = text.split('\n');
+    return (
+      <div className="space-y-2">
+        {lines.map((line, lineIdx) => {
+          let content: React.ReactNode = line;
+          let isHeader = false;
+          let isListItem = false;
+
+          if (line.trim().startsWith('### ')) {
+            isHeader = true;
+            const headerText = line.trim().substring(4).trim();
+            content = parseBoldText(headerText, isUser);
+          } else if (line.trim().startsWith('* ') || line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
+            isListItem = true;
+            const bulletRegex = /^\s*[\*\-•]\s+/;
+            const itemText = line.replace(bulletRegex, '');
+            content = parseBoldText(itemText, isUser);
+          } else {
+            content = parseBoldText(line, isUser);
+          }
+
+          if (isHeader) {
+            return (
+              <h4 key={lineIdx} className={cn(
+                "font-bold text-sm border-b pb-1 mb-2 mt-3 flex items-center gap-1.5",
+                isUser ? "text-white border-white/20" : "text-[#0A0E1A] border-[#E6E9EE]"
+              )}>
+                {!isUser && <Sparkles className="h-3.5 w-3.5 text-[#3199E4] flex-none" />}
+                {content}
+              </h4>
+            );
+          }
+
+          if (isListItem) {
+            return (
+              <li key={lineIdx} className={cn(
+                "ml-4 list-disc pl-1 text-xs leading-relaxed my-0.5",
+                isUser ? "text-white/90" : "text-[#36404F]"
+              )}>
+                {content}
+              </li>
+            );
+          }
+
+          return (
+            <p key={lineIdx} className={cn(
+              "text-xs leading-relaxed min-h-[1em]",
+              isUser ? "text-white" : "text-[#36404F]"
+            )}>
+              {content}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Handle switching date for Daily Recap
   const handleDateChange = (date: string) => {
@@ -118,336 +209,417 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
     }
   };
 
+  // Voice Assistant flow simulation
+  const triggerVoiceAssistant = () => {
+    setShowVoiceOverlay(true);
+    setVoiceStatus('listening');
+    setVoiceTranscript('How is my business looking today?');
+    setVoiceReply('');
+
+    // Simulate speech-to-text
+    setTimeout(() => {
+      setVoiceStatus('processing');
+      
+      // Simulate answer generation
+      setTimeout(() => {
+        setVoiceStatus('responding');
+        setVoiceReply(`Good morning! ${merchant.name} is performing steadily. Today's daily recap shows ₹${latestDailyRecap.revenue.toLocaleString('en-IN')} collection across ${latestDailyRecap.transactionsCount} scans. Your settlement risk is LOW, with standard payout batch clearances.`);
+      }, 1500);
+    }, 2000);
+  };
+
   // Helper to select icon based on category
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Grocery Store':
-        return <Store className="h-6 w-6 text-emerald-400" />;
+        return <Store className="h-5 w-5 text-[#1F8A4C]" />;
       case 'Restaurant':
-        return <Utensils className="h-6 w-6 text-orange-400" />;
+        return <Utensils className="h-5 w-5 text-[#C77A12]" />;
       case 'Medical Store':
-        return <Activity className="h-6 w-6 text-rose-400" />;
+        return <Activity className="h-5 w-5 text-[#D63B3B]" />;
       case 'Electronics Store':
-        return <Smartphone className="h-6 w-6 text-cyan-400" />;
+        return <Smartphone className="h-5 w-5 text-[#3199E4]" />;
       case 'Clothing Store':
-        return <Shirt className="h-6 w-6 text-amber-400" />;
+        return <Shirt className="h-5 w-5 text-[#577FCB]" />;
       default:
-        return <Store className="h-6 w-6 text-blue-400" />;
+        return <Store className="h-5 w-5 text-[#002970]" />;
     }
   };
 
-  // Segment colors for Pie Chart
-  const PAYMENT_COLORS = ['#00b9f5', '#00d2c4', '#6366f1', '#f59e0b', '#ec4899'];
-  const CUSTOMER_COLORS = ['#34d399', '#60a5fa', '#fbbf24', '#f87171'];
+  // Colors mapping
+  const PAYMENT_COLORS = ['#3199E4', '#00BAF2', '#577FCB', '#859DD9', '#E2F0FC'];
+  const CUSTOMER_COLORS = ['#1F8A4C', '#C77A12', '#3199E4', '#D63B3B'];
 
-  // Prepare Forecast Overlay Chart Data
-  // Combine historical dailyTrends (last 10 days) and forecast (7 days)
-  const last10DaysTrends = revenue.dailyTrends.slice(-12).map(t => ({
-    date: t.date.substring(8, 10) + ' ' + new Date(t.date).toLocaleDateString('en-IN', { month: 'short' }),
+  // Prepare Forecast overlay
+  const last12DaysTrends = revenue.dailyTrends.slice(-12).map(t => ({
+    date: new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
     actual: t.revenue,
     forecast: null
   }));
 
   const forecastTrends = forecast.map(f => ({
-    date: f.date.substring(8, 10) + ' ' + new Date(f.date).toLocaleDateString('en-IN', { month: 'short' }) + ' (F)',
+    date: new Date(f.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
     actual: null,
     forecast: f.revenue
   }));
 
-  // Create transition point so the forecast line connects to the last actual point
-  if (last10DaysTrends.length > 0 && forecastTrends.length > 0) {
+  if (last12DaysTrends.length > 0 && forecastTrends.length > 0) {
     forecastTrends.unshift({
-      date: last10DaysTrends[last10DaysTrends.length - 1].date,
+      date: last12DaysTrends[last12DaysTrends.length - 1].date,
       actual: null,
-      forecast: last10DaysTrends[last10DaysTrends.length - 1].actual
+      forecast: last12DaysTrends[last12DaysTrends.length - 1].actual
     });
   }
 
-  const combinedForecastChartData = [...last10DaysTrends, ...forecastTrends];
+  const combinedForecastChartData = [...last12DaysTrends, ...forecastTrends];
+
+  // AI Specimen card footer: Confidence bar generator
+  const renderConfidenceMeter = (level: 'high' | 'medium' | 'low') => {
+    const barsCount = level === 'high' ? 3 : level === 'medium' ? 2 : 1;
+    const label = level === 'high' ? 'High Trust' : level === 'medium' ? 'Medium Trust' : 'Low Trust';
+    const color = level === 'high' ? 'var(--success)' : level === 'medium' ? 'var(--warning)' : 'var(--ink-500)';
+    return (
+      <div className="ai-conf">
+        <div className="ai-conf__bars">
+          <b className={barsCount >= 1 ? 'on' : ''} style={{ '--_c': color } as any}></b>
+          <b className={barsCount >= 2 ? 'on' : ''} style={{ '--_c': color } as any}></b>
+          <b className={barsCount >= 3 ? 'on' : ''} style={{ '--_c': color } as any}></b>
+        </div>
+        <span className="ai-conf__label">{label}</span>
+      </div>
+    );
+  };
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition-all">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                {getCategoryIcon(merchant.category)}
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  {merchant.name}
-                  <span className="text-xs px-2 py-0.5 rounded bg-brand-blue/30 border border-brand-cyan/20 text-brand-cyan uppercase font-semibold">
-                    {merchant.category}
-                  </span>
-                </h1>
-                <p className="text-xs text-slate-400 flex items-center gap-3">
-                  <span>Owner: <strong className="text-slate-300">{merchant.ownerName}</strong></span>
-                  <span>&bull;</span>
-                  <span>UPI ID: <strong className="text-slate-300">{merchant.upiId}</strong></span>
-                  <span>&bull;</span>
-                  <span>City: <strong className="text-slate-300">{merchant.city}</strong></span>
-                </p>
-              </div>
-            </div>
+    <div className="flex-1 flex flex-col bg-[#F5F7FA] min-h-screen">
+      {/* 1. TOP NAV BAR (Paytm Design Spec: 58px height, white surface, hairline border) */}
+      <nav className="h-[58px] bg-white border-b border-[#E6E9EE] flex items-center px-[22px] justify-between sticky top-0 z-30 select-none">
+        <div className="flex items-center gap-3.5">
+          <Link href="/" className="mr-1">
+            <img src="/assets/paytm-logo.png" alt="Paytm" className="h-[22px] object-contain" />
+          </Link>
+          <span className="text-[13px] font-bold text-[#36404F] border-l border-[#E6E9EE] pl-3.5 pt-0.5">
+            for Business
+          </span>
+          <div className="hidden md:flex items-center gap-2 text-xs text-[#5A6473] font-medium ml-4">
+            <span>&bull;</span>
+            <span>Account: <strong className="text-[#0A0E1A]">{merchant.name}</strong></span>
+            <span>&bull;</span>
+            <span>UPI ID: <strong className="text-[#0A0E1A] font-mono">{merchant.upiId}</strong></span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={triggerVoiceAssistant} 
+            className="pt-btn pt-btn--sm pt-btn--secondary flex items-center gap-1.5 font-bold"
+          >
+            <Mic className="h-3.5 w-3.5" />
+            Ask by voice
+          </button>
+          <div className="h-[34px] w-[34px] rounded-full bg-[#3199E4] text-white flex items-center justify-center font-bold text-xs select-none shadow-sm">
+            {merchant.ownerName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Layout Grid */}
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-[22px] py-6 flex flex-col gap-6">
+        
+        {/* 2. SUB HEADER (Welcome name + Action AI button) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-[#0A0E1A] tracking-tight">
+              Good morning, {merchant.ownerName}
+            </h2>
+            <p className="text-xs text-[#5A6473] font-medium flex items-center gap-1.5 mt-0.5">
+              <span>{merchant.name}</span>
+              <span>&bull;</span>
+              <span>{merchant.city}</span>
+              <span>&bull;</span>
+              <span>Today, 06 Jun 2026</span>
+            </p>
           </div>
 
           <button
             onClick={() => setActiveTab('copilot')}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg",
+              "pt-btn pt-btn--md flex items-center gap-2 shadow-sm font-bold",
               activeTab === 'copilot'
-                ? "bg-brand-cyan text-slate-950 glow-border"
-                : "bg-slate-900 border border-slate-800 hover:border-brand-cyan/40 text-brand-cyan hover:text-white"
+                ? "pt-btn--navy"
+                : "pt-btn--primary"
             )}
           >
             <Sparkles className="h-4 w-4" />
-            Ask Copilot
+            Ask Paytm AI
           </button>
         </div>
-      </header>
 
-      {/* Navigation Tabs */}
-      <section className="bg-slate-950/40 border-b border-slate-900 px-4 sm:px-6 lg:px-8 py-2">
-        <div className="max-w-7xl mx-auto flex overflow-x-auto gap-2 py-1 scrollbar-none">
+        {/* 3. APP CHIPS NAVIGATION TABS */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {[
-            { id: 'overview', label: 'Overview', icon: Store },
-            { id: 'revenue-forecast', label: 'Revenue & Forecasting', icon: TrendingUp },
-            { id: 'peak-payments', label: 'Peak Hours & Payments', icon: Clock },
-            { id: 'customers', label: 'Customer Visit Patterns', icon: Users },
-            { id: 'settlements', label: 'Settlement Intelligence', icon: ShieldAlert },
-            { id: 'recaps', label: 'Recaps & Reviews', icon: FileText },
-            { id: 'copilot', label: 'AI Copilot Chat', icon: Sparkles },
-          ].map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                  activeTab === tab.id
-                    ? "bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/35"
-                    : "text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+            { id: 'overview', label: 'Overview' },
+            { id: 'revenue-forecast', label: 'Revenue & Forecasting' },
+            { id: 'peak-payments', label: 'Peak Hours & Payments' },
+            { id: 'customers', label: 'Customer Visit Patterns' },
+            { id: 'settlements', label: 'Settlement Intelligence' },
+            { id: 'recaps', label: 'Recaps & Reviews' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "pt-chip",
+                activeTab === tab.id
+                  ? "bg-[#E2F0FC] text-[#3199E4] shadow-none border border-[#3199E4]"
+                  : ""
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </section>
 
-      {/* Main Content Sections */}
-      <section className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        {/* TAB content loader */}
         
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <div className="space-y-6 animate-fade-in">
+            {/* Paytm Collection Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              {/* Card 1: Revenue */}
-              <div className="glass-panel rounded-2xl p-5 relative overflow-hidden group col-span-1 xl:col-span-2">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <IndianRupee className="h-12 w-12 text-brand-cyan" />
-                </div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">30D Revenue</h4>
-                <div className="flex items-baseline gap-1.5 mt-2">
-                  <span className="text-2xl font-extrabold text-white">₹{revenue.totalRevenue.toLocaleString()}</span>
+              {/* Stat 1: Collections */}
+              <div className="pt-cardshell p-5 relative overflow-hidden">
+                <div className="text-[12px] font-bold text-[#5A6473] uppercase tracking-wide">30D collections</div>
+                <div className="text-3xl font-extrabold text-[#0A0E1A] mt-2.5 tnum flex items-baseline gap-2">
+                  ₹{revenue.totalRevenue.toLocaleString('en-IN')}
                   <span className={cn(
-                    "text-[10px] font-bold px-1 rounded flex items-center gap-0.5",
-                    revenue.growthPercentage >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5",
+                    revenue.growthPercentage >= 0 ? "text-[#1F8A4C] bg-[#E4F6EC]" : "text-[#D63B3B] bg-[#FCE7E7]"
                   )}>
                     {revenue.growthPercentage >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                     {Math.abs(revenue.growthPercentage)}%
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2">Previous Period: ₹{Math.round(revenue.totalRevenue / (1 + (revenue.growthPercentage / 100))).toLocaleString()}</p>
+                <div className="text-[11px] text-[#7E8794] mt-2 font-medium">Growth vs prior 15D period</div>
               </div>
 
-              {/* Card 2: Transactions */}
-              <div className="glass-panel rounded-2xl p-5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <ActivityIcon className="h-12 w-12 text-brand-cyan" />
-                </div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Scans</h4>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-2xl font-extrabold text-white">{revenue.successTxnCount}</span>
-                  <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1 rounded ml-1">SUCCESS</span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-2">Failed: {revenue.failedTxnCount} ({((revenue.failedTxnCount / (revenue.successTxnCount + revenue.failedTxnCount)) * 100).toFixed(1)}%)</p>
+              {/* Stat 2: Scans */}
+              <div className="pt-cardshell p-5 relative overflow-hidden">
+                <div className="text-[12px] font-bold text-[#5A6473] uppercase tracking-wide">SUCCESS Scans count</div>
+                <div className="text-3xl font-extrabold text-[#0A0E1A] mt-2.5 tnum">{revenue.successTxnCount}</div>
+                <div className="text-[11px] text-[#D63B3B] mt-2 font-medium">Failed scans: {revenue.failedTxnCount} ({((revenue.failedTxnCount / (revenue.successTxnCount + revenue.failedTxnCount)) * 100).toFixed(1)}%)</div>
               </div>
 
-              {/* Card 3: AOV */}
-              <div className="glass-panel rounded-2xl p-5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <IndianRupee className="h-12 w-12 text-brand-teal" />
-                </div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Average Ticket</h4>
-                <p className="text-2xl font-extrabold text-white mt-2">₹{revenue.averageOrderValue}</p>
-                <p className="text-[10px] text-slate-500 mt-2">Per digital scanner scan</p>
+              {/* Stat 3: Avg Order */}
+              <div className="pt-cardshell p-5 relative overflow-hidden">
+                <div className="text-[12px] font-bold text-[#5A6473] uppercase tracking-wide">Average scan size</div>
+                <div className="text-3xl font-extrabold text-[#0A0E1A] mt-2.5 tnum">₹{revenue.averageOrderValue}</div>
+                <div className="text-[11px] text-[#7E8794] mt-2 font-medium">Per successful scanner transaction</div>
               </div>
 
-              {/* Card 4: Repeat Visits */}
-              <div className="glass-panel rounded-2xl p-5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <Users className="h-12 w-12 text-brand-teal" />
-                </div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Repeat Scanners</h4>
-                <p className="text-2xl font-extrabold text-white mt-2">{customers.repeatCustomerRate}%</p>
-                <p className="text-[10px] text-slate-500 mt-2">Repeat visit customers rate</p>
+              {/* Stat 4: Settlements */}
+              <div className="pt-cardshell p-5 relative overflow-hidden">
+                <div className="text-[12px] font-bold text-[#5A6473] uppercase tracking-wide">Pending payout balance</div>
+                <div className="text-3xl font-extrabold text-[#C77A12] mt-2.5 tnum">₹{settlements.totalPendingAmount.toLocaleString('en-IN')}</div>
+                <div className="text-[11px] text-[#7E8794] mt-2 font-medium">Clearing T+1 standard batches</div>
               </div>
 
-              {/* Card 5: Health Score */}
-              <div className="glass-panel rounded-2xl p-5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <Sparkles className="h-12 w-12 text-brand-orange animate-pulse" />
-                </div>
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Health Index</h4>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-2xl font-extrabold text-white">{revenue.healthScore}</span>
-                  <span className={cn(
-                    "text-[8px] font-extrabold px-1 rounded uppercase tracking-wider",
-                    revenue.healthLevel === 'EXCELLENT' ? 'text-emerald-400 bg-emerald-500/10' :
-                    revenue.healthLevel === 'GOOD' ? 'text-brand-cyan bg-brand-cyan/10' :
-                    revenue.healthLevel === 'NEEDS_ATTENTION' ? 'text-amber-400 bg-amber-500/10' :
-                    'text-rose-400 bg-rose-500/10'
-                  )}>
-                    {revenue.healthLevel}
+            </div>
+
+            {/* AI For Your Business Specimen Header */}
+            <div className="flex items-center gap-2.5 mt-2 ml-1">
+              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#00BAF2] via-[#3199E4] to-[#1F4D9E] flex items-center justify-center text-white">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[14px] font-bold text-[#0A0E1A]">AI for your business</span>
+            </div>
+
+            {/* AI Cards Grid (Speciment Spec) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              {/* AI Insight Spec Card */}
+              <div className="ai-card ai-card--rail" style={{ '--_accent': 'var(--cat-growth)' } as any}>
+                <div className="ai-card__head">
+                  <div className="h-[30px] w-[30px] rounded-full bg-[#EEFAFE] text-[#3199E4] flex items-center justify-center font-bold text-xs">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="ai-card__eyebrow">Business insight</span>
+                  <span className="ai-card__spacer ai-insight__delta ai-insight__delta--up">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    Growth Peak
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2">Operational pipeline rating</p>
+                <div className="ai-card__title mt-1">
+                  Peak hourly traffic occurs during {peakHours.peakHours[0]}:00 ({peakHours.peakPeriodName})
+                </div>
+                <div className="ai-insight__metric mt-3">
+                  <span className="ai-insight__value tnum">₹{Math.round(revenue.totalRevenue / 30).toLocaleString('en-IN')}</span>
+                  <span className="text-xs text-[#5A6473] font-medium ml-2">Estimated daily baseline</span>
+                </div>
+                <div className="ai-insight__spark mt-4">
+                  {peakHours.hourlyStats.slice(6, 22).map((h, i) => (
+                    <i 
+                      key={i} 
+                      className={h.hour === peakHours.peakHours[0] ? 'is-peak' : ''} 
+                      style={{ height: `${Math.max(12, (h.revenue / Math.max(...peakHours.hourlyStats.map(s => s.revenue))) * 100)}%` }} 
+                    />
+                  ))}
+                </div>
+                <div className="ai-card__foot mt-5">
+                  {renderConfidenceMeter('high')}
+                  <span onClick={() => setActiveTab('peak-payments')} className="ai-card__spacer pt-section__action flex items-center gap-1">
+                    Why this? <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
               </div>
 
-            </div>
-
-            {/* Middle Section: Health Score gauge and Daily Recap */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Daily recap */}
-              <div className="lg:col-span-2 glass-panel rounded-2xl p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-brand-cyan" />
-                    Daily Operations Summary ({latestDailyRecap.date})
-                  </h3>
-                  <button 
-                    onClick={() => setActiveTab('recaps')} 
-                    className="text-xs text-brand-cyan hover:underline font-semibold"
-                  >
-                    View History
-                  </button>
+              {/* AI Recommendation Spec Card */}
+              <div className="ai-card">
+                <div className="ai-card__head">
+                  <div className="h-[30px] w-[30px] rounded-full bg-[#E4F6EC] text-[#1F8A4C] flex items-center justify-center font-bold text-xs">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="ai-card__eyebrow">Paytm Action Recommendation</span>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 mb-5">
-                  <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-900">
-                    <span className="text-[10px] text-slate-500 uppercase">Gross Scans</span>
-                    <p className="text-base font-bold text-slate-200 mt-0.5">₹{latestDailyRecap.revenue.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-900">
-                    <span className="text-[10px] text-slate-500 uppercase">Total Counts</span>
-                    <p className="text-base font-bold text-slate-200 mt-0.5">{latestDailyRecap.transactionsCount} payments</p>
-                  </div>
-                  <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-900">
-                    <span className="text-[10px] text-slate-500 uppercase">Popular Mode</span>
-                    <p className="text-xs font-bold text-slate-250 mt-1 truncate" title={latestDailyRecap.dominantPaymentMode}>
-                      {latestDailyRecap.dominantPaymentMode}
+                <div className="ai-reco mt-2">
+                  <div className="space-y-3 flex-1">
+                    <h3 className="text-[15px] font-bold text-[#0A0E1A]">
+                      Launch a 'Paytm Loyalty Stamp Card' campaign
+                    </h3>
+                    <p className="text-sm text-[#36404F] font-medium leading-relaxed">
+                      Your repeat visits rate is currently **{customers.repeatCustomerRate}%**. Setting up a scan promo offering ₹25 cashback on a customer's 5th transaction can convert single-visit scanners.
                     </p>
+                    <span className="ai-reco__impact">
+                      Lift repeat rate by ~10%
+                    </span>
                   </div>
                 </div>
 
-                <ul className="space-y-2">
-                  {latestDailyRecap.insights.map((insight, idx) => (
-                    <li key={idx} className="text-xs text-slate-350 flex items-start gap-2">
-                      <span className="text-brand-cyan mt-1">&bull;</span>
-                      <span>{insight}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="ai-card__foot mt-6">
+                  {renderConfidenceMeter('medium')}
+                  <button 
+                    onClick={() => {
+                      setActiveTab('copilot');
+                      setMessages(prev => [...prev, {
+                        id: Math.random().toString(),
+                        role: 'user',
+                        text: "How do I setup a Paytm Loyalty Stamp Card campaign?"
+                      }]);
+                      handleSendChat("How do I setup a Paytm Loyalty Stamp Card campaign?");
+                    }} 
+                    className="ai-card__spacer pt-btn pt-btn--sm pt-btn--primary font-bold text-xs"
+                  >
+                    Setup Campaign
+                  </button>
+                </div>
               </div>
 
-              {/* Health Score and Delay warnings */}
-              <div className="glass-panel rounded-2xl p-6 bg-gradient-to-br from-brand-blue/15 to-slate-950/65 border-brand-cyan/15 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5 mb-3">
-                    <ShieldAlert className="h-4 w-4 text-brand-cyan" />
-                    Settlement Status Warnings
-                  </h3>
-                  
-                  {settlements.delayPredictions.length > 0 ? (
-                    <div className="space-y-3 mt-2">
-                      {settlements.delayPredictions.map((pred, idx) => (
-                        <div key={idx} className="bg-slate-950/80 border border-slate-900 rounded-xl p-3 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-rose-400">⚠️ Risk of delay: {pred.settlementId}</span>
-                            <span className="text-[10px] font-bold text-slate-400">{pred.pendingHours}h pending</span>
-                          </div>
-                          <p className="text-slate-300 mt-1">Payout sum: **₹{pred.amount.toLocaleString()}**</p>
-                          <p className="text-[10px] text-slate-500 mt-2">Exceeds standard 24-hour T+1 batch clearance timing.</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-center mt-2 text-xs text-slate-400">
-                      ✓ All settlements are clearing normally. Delay predictions index is clean.
-                    </div>
-                  )}
+              {/* AI Risk Alert Card */}
+              <div className="ai-risk ai-risk--medium">
+                <div className="ai-risk__head">
+                  <div className="ai-risk__icon">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="ai-risk__title">Payout Delay Risk Flagged</h4>
+                    <span className="ai-risk__sev">Medium Pipeline Severity</span>
+                  </div>
+                </div>
+                <p className="ai-risk__body">
+                  We predicted delay risks for pending settlements. Currently, **{settlements.delayPredictions.length} payout** (SET092 for ₹{settlements.totalPendingAmount.toLocaleString('en-IN')}) has been pending for over 24 hours.
+                </p>
+                <div className="ai-risk__actions flex justify-end gap-3.5 mt-5">
+                  <button 
+                    onClick={() => setActiveTab('settlements')} 
+                    className="pt-btn pt-btn--sm pt-btn--navy font-bold text-xs"
+                  >
+                    Investigate Ledger
+                  </button>
+                </div>
+              </div>
+
+              {/* Merchant Operational Health Spec Card */}
+              <div className="ai-card ai-card--rail" style={{ '--_accent': 'var(--cat-insight)' } as any}>
+                <div className="ai-card__head">
+                  <div className="h-[30px] w-[30px] rounded-full bg-[#E2F0FC] text-[#3199E4] flex items-center justify-center font-bold text-xs">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="ai-card__eyebrow">Health Index Specimen</span>
+                </div>
+                
+                <div className="flex items-center gap-6 mt-3">
+                  <div className="h-20 w-20 rounded-full border-4 border-[#E6E9EE] flex flex-col items-center justify-center flex-none">
+                    <span className="text-2xl font-black text-[#0A0E1A]">{revenue.healthScore}</span>
+                    <span className="text-[8px] text-[#7E8794] font-bold uppercase">Index</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-[#36404F]">
+                    <p className="font-bold text-[#0A0E1A]">Rating: <span className="text-[#3199E4]">{revenue.healthLevel}</span></p>
+                    <p>✓ Payment success rate is high ({((revenue.successTxnCount / (revenue.successTxnCount + revenue.failedTxnCount)) * 100).toFixed(1)}%)</p>
+                    <p>✓ Settlement delay rate stands at {settlements.delayRate}%</p>
+                  </div>
                 </div>
 
-                <button
-                  onClick={() => setActiveTab('settlements')}
-                  className="text-xs text-brand-cyan hover:underline font-semibold mt-4 text-left flex items-center gap-1"
-                >
-                  Manage Payouts Pipeline &rarr;
-                </button>
+                <div className="ai-card__foot mt-6">
+                  {renderConfidenceMeter('high')}
+                  <button 
+                    onClick={() => {
+                      setActiveTab('copilot');
+                      setMessages(prev => [...prev, {
+                        id: Math.random().toString(),
+                        role: 'user',
+                        text: "Explain my Merchant Health Score components."
+                      }]);
+                      handleSendChat("Explain my Merchant Health Score components.");
+                    }} 
+                    className="ai-card__spacer pt-btn pt-btn--sm pt-btn--secondary font-bold text-xs"
+                  >
+                    View Components
+                  </button>
+                </div>
               </div>
 
             </div>
 
-            {/* Quick Charts */}
+            {/* Micro Charts Section */}
             {mounted && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 30D daily trend area */}
-                <div className="glass-panel rounded-2xl p-6">
-                  <h3 className="text-base font-bold text-white mb-4">30-Day Revenue Trend</h3>
-                  <div className="h-[250px] w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                {/* 30D area chart */}
+                <div className="pt-cardshell p-6">
+                  <h3 className="text-sm font-bold text-[#0A0E1A] mb-4">Historical Daily Scans Trend</h3>
+                  <div className="h-[240px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={revenue.dailyTrends}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#00b9f5" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#00b9f5" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#3199E4" stopOpacity={0.15}/>
+                            <stop offset="95%" stopColor="#3199E4" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickFormatter={(val) => val.substring(8, 10)} />
-                        <YAxis stroke="#94a3b8" fontSize={11} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
-                        <Area type="monotone" dataKey="revenue" stroke="#00b9f5" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name="Revenue (₹)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E6E9EE" />
+                        <XAxis dataKey="date" stroke="#5A6473" fontSize={11} tickFormatter={(val) => val.substring(8, 10)} />
+                        <YAxis stroke="#5A6473" fontSize={11} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
+                        <Area type="monotone" dataKey="revenue" stroke="#3199E4" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name="Collection (₹)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Peak Hours distribution */}
-                <div className="glass-panel rounded-2xl p-6">
-                  <h3 className="text-base font-bold text-white mb-4">Hourly Traffic Distribution</h3>
-                  <div className="h-[250px] w-full">
+                {/* Hourly traffic */}
+                <div className="pt-cardshell p-6">
+                  <h3 className="text-sm font-bold text-[#0A0E1A] mb-4">Hourly Collections Share</h3>
+                  <div className="h-[240px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={peakHours.hourlyStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="hour" stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `${val}h`} />
-                        <YAxis stroke="#94a3b8" fontSize={11} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
-                        <Bar dataKey="revenue" name="Volume (₹)">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E6E9EE" />
+                        <XAxis dataKey="hour" stroke="#5A6473" fontSize={11} tickFormatter={(val) => `${val}h`} />
+                        <YAxis stroke="#5A6473" fontSize={11} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
+                        <Bar dataKey="revenue" fill="#00BAF2" name="Collections (₹)">
                           {peakHours.hourlyStats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.hour === peakHours.peakHours[0] ? '#ff5d24' : '#00d2c4'} />
+                            <Cell key={`cell-${index}`} fill={entry.hour === peakHours.peakHours[0] ? '#ff5d24' : '#00BAF2'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -461,56 +633,53 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
         {/* TAB 2: REVENUE & FORECASTING */}
         {activeTab === 'revenue-forecast' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Forecast callouts */}
+          <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel rounded-2xl p-6 border-brand-cyan/20 bg-gradient-to-br from-brand-blue/10 to-transparent">
-                <Sparkles className="h-8 w-8 text-brand-cyan mb-3" />
-                <h4 className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Predicted 7-Day Cumulative Intake</h4>
-                <p className="text-2xl font-bold text-white mt-1">
-                  ₹{Math.round(forecast.reduce((sum, f) => sum + f.revenue, 0)).toLocaleString()}
+              <div className="pt-cardshell p-6 border-l-4 border-[#00BAF2]">
+                <span className="text-[11px] text-[#5A6473] font-bold uppercase tracking-wider">Projected 7D Collections</span>
+                <p className="text-2xl font-black text-[#0A0E1A] mt-2 tnum">
+                  ₹{Math.round(forecast.reduce((sum, f) => sum + f.revenue, 0)).toLocaleString('en-IN')}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">Based on rolling seasonal projections</p>
+                <p className="text-[10px] text-[#7E8794] mt-1.5 font-medium">Predictive algorithm using rolling baseline averages</p>
               </div>
-              <div className="glass-panel rounded-2xl p-6">
-                <TrendingUp className="h-8 w-8 text-brand-teal mb-3" />
-                <h4 className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Expected Growth Trend</h4>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {revenue.growthPercentage >= 0 ? '+' : ''}{revenue.growthPercentage}%
+              <div className="pt-cardshell p-6">
+                <span className="text-[11px] text-[#5A6473] font-bold uppercase tracking-wider">30D Growth Velocity</span>
+                <p className="text-2xl font-black text-[#1F8A4C] mt-2 tnum flex items-center gap-1">
+                  <TrendingUp className="h-5 w-5" />
+                  {revenue.growthPercentage}%
                 </p>
-                <p className="text-xs text-slate-400 mt-1">Growth rate compared to previous period</p>
+                <p className="text-[10px] text-[#7E8794] mt-1.5 font-medium">Growth compared to previous 15D period</p>
               </div>
-              <div className="glass-panel rounded-2xl p-6">
-                <IndianRupee className="h-8 w-8 text-slate-450 mb-3" />
-                <h4 className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Baseline Daily Intake</h4>
-                <p className="text-2xl font-bold text-white mt-1">
-                  ₹{Math.round(revenue.totalRevenue / 30).toLocaleString()}
+              <div className="pt-cardshell p-6">
+                <span className="text-[11px] text-[#5A6473] font-bold uppercase tracking-wider">Median Daily Collections</span>
+                <p className="text-2xl font-black text-[#0A0E1A] mt-2 tnum">
+                  ₹{Math.round(revenue.totalRevenue / 30).toLocaleString('en-IN')}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">Median daily average over 30 days</p>
+                <p className="text-[10px] text-[#7E8794] mt-1.5 font-medium">Calculated over a 30-day historical log</p>
               </div>
             </div>
 
-            {/* Line chart with historical actuals + forecast overlay */}
             {mounted && (
-              <div className="glass-panel rounded-2xl p-6">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-brand-cyan" />
-                    Revenue Projections & Forecast (Next 7 Days)
+              <div className="pt-cardshell p-6">
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-[#0A0E1A] flex items-center gap-2">
+                    <Sparkles className="h-4.5 w-4.5 text-[#3199E4]" />
+                    7-Day Sales Projections & Forecasting
                   </h3>
-                  <p className="text-xs text-slate-400 mb-6">
-                    Historical actual revenue is represented in <span className="text-brand-cyan font-semibold">Solid Cyan</span>. The projected forecast overlay is represented in <span className="text-brand-teal font-semibold">Dashed Cyan</span>.
+                  <p className="text-xs text-[#5A6473] font-medium mt-1 leading-relaxed">
+                    Historical actual collection levels are plotted in <span className="text-[#3199E4] font-semibold">Solid Blue</span>. The estimated forecast projections are plotted in <span className="text-[#00BAF2] font-semibold">Dashed Cyan</span>.
                   </p>
                 </div>
-                <div className="h-[400px] w-full">
+                
+                <div className="h-[380px] w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={combinedForecastChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
-                      <YAxis stroke="#94a3b8" fontSize={11} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
-                      <Line type="monotone" dataKey="actual" stroke="#00b9f5" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} name="Actual Revenue (₹)" connectNulls />
-                      <Line type="monotone" dataKey="forecast" stroke="#00d2c4" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 2 }} name="Forecasted Revenue (₹)" connectNulls />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E6E9EE" />
+                      <XAxis dataKey="date" stroke="#5A6473" fontSize={11} />
+                      <YAxis stroke="#5A6473" fontSize={11} />
+                      <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
+                      <Line type="monotone" dataKey="actual" stroke="#3199E4" strokeWidth={3} dot={{ r: 3 }} name="Actual (₹)" connectNulls />
+                      <Line type="monotone" dataKey="forecast" stroke="#00BAF2" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 2 }} name="Forecast (₹)" connectNulls />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -521,23 +690,23 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
         {/* TAB 3: PEAK HOURS & PAYMENTS */}
         {activeTab === 'peak-payments' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-            {/* Peak Hours distribution */}
-            <div className="glass-panel rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-white mb-2">Detailed Hourly Performance</h3>
-              <p className="text-xs text-slate-400 mb-6">Identify busy slots to optimize cashier staff and Soundbox volume settings</p>
-              
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+            {/* Hourly charts */}
+            <div className="pt-cardshell p-6">
+              <h3 className="text-base font-bold text-[#0A0E1A] mb-1">Hourly Checkout Intensities</h3>
+              <p className="text-xs text-[#5A6473] font-medium mb-6">Volume distribution across the standard 24h operational day</p>
+
               {mounted && (
-                <div className="h-[300px] w-full">
+                <div className="h-[300px] w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={peakHours.hourlyStats}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="hour" stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `${val}:00`} />
-                      <YAxis stroke="#94a3b8" fontSize={11} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
-                      <Bar dataKey="revenue" name="Revenue (₹)">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E6E9EE" />
+                      <XAxis dataKey="hour" stroke="#5A6473" fontSize={11} tickFormatter={(val) => `${val}:00`} />
+                      <YAxis stroke="#5A6473" fontSize={11} />
+                      <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
+                      <Bar dataKey="revenue" name="Collections (₹)">
                         {peakHours.hourlyStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.hour === peakHours.peakHours[0] ? '#ff5d24' : '#00b9f5'} />
+                          <Cell key={`cell-${index}`} fill={entry.hour === peakHours.peakHours[0] ? '#ff5d24' : '#3199E4'} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -545,19 +714,19 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                 </div>
               )}
 
-              <div className="mt-4 p-3 bg-slate-950/50 rounded-xl border border-slate-900 text-xs text-slate-350">
-                ⚠️ Your primary peak slot occurs around **{peakHours.peakHours[0]}:00** (**{peakHours.peakPeriodName}**). Keep a secondary Paytm QR sticker visible at the counter to decrease queues.
+              <div className="mt-4 p-3.5 bg-[#F4F9FE] border border-[#3199E4]/20 rounded-xl text-xs text-[#36404F]">
+                💡 **Peak Hour Optimization**: Your peak business occurs around **{peakHours.peakHours[0]}:00** (**{peakHours.peakPeriodName}**). Double-check counter terminal network connections before this window.
               </div>
             </div>
 
-            {/* Payment Mode Mix Pie Chart */}
-            <div className="glass-panel rounded-2xl p-6 flex flex-col justify-between">
+            {/* Payment share mix */}
+            <div className="pt-cardshell p-6 flex flex-col justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Payment Mode Mix</h3>
-                <p className="text-xs text-slate-400 mb-6">Checkout distribution across UPI, Paytm Wallet, Card, and Net Banking channels</p>
+                <h3 className="text-base font-bold text-[#0A0E1A] mb-1">Payment Mode Breakdown</h3>
+                <p className="text-xs text-[#5A6473] font-medium mb-6">Distribution share of scan types (UPI, Paytm Wallet, Card, Net Banking)</p>
 
                 {mounted && (
-                  <div className="h-[250px] w-full flex justify-center mb-4">
+                  <div className="h-[220px] w-full flex justify-center mb-4 relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -565,7 +734,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                           cx="50%"
                           cy="50%"
                           innerRadius={60}
-                          outerRadius={90}
+                          outerRadius={85}
                           paddingAngle={3}
                           dataKey="count"
                           nameKey="mode"
@@ -574,7 +743,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                             <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -586,11 +755,11 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                     <div key={idx} className="flex justify-between items-center text-xs">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PAYMENT_COLORS[idx % PAYMENT_COLORS.length] }}></span>
-                        <span className="text-slate-300 font-medium">{mode.mode}</span>
+                        <span className="text-[#36404F] font-semibold">{mode.mode}</span>
                       </div>
                       <div className="text-right flex items-center gap-3">
-                        <span className="text-slate-400">{mode.count} scans</span>
-                        <span className="text-slate-200 font-bold">₹{mode.revenue.toLocaleString()}</span>
+                        <span className="text-[#7E8794]">{mode.count} payments</span>
+                        <span className="text-[#0A0E1A] font-bold tnum">₹{mode.revenue.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   ))}
@@ -600,36 +769,36 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           </div>
         )}
 
-        {/* TAB 4: CUSTOMER LOYALTY */}
+        {/* TAB 4: CUSTOMER VISIT PATTERNS */}
         {activeTab === 'customers' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-            {/* Visit frequency segments */}
-            <div className="glass-panel rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-white mb-2">Customer Visit Frequencies</h3>
-              <p className="text-xs text-slate-400 mb-6">Group customer identifiers by frequency of scan payments over the month</p>
-              
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+            {/* Visit table */}
+            <div className="pt-cardshell p-6">
+              <h3 className="text-base font-bold text-[#0A0E1A] mb-1">Customer visit frequency segments</h3>
+              <p className="text-xs text-[#5A6473] font-medium mb-6">Group wallet identifiers based on scan frequencies</p>
+
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-slate-500 uppercase border-b border-slate-900">
+                <table className="w-full text-xs text-left">
+                  <thead className="text-[10px] text-[#7E8794] uppercase tracking-wider border-b border-[#E6E9EE]">
                     <tr>
-                      <th className="py-3 px-2">Visit Segment</th>
-                      <th className="py-3 px-2 text-right">Customer Count</th>
-                      <th className="py-3 px-2 text-right">Segment Share</th>
-                      <th className="py-3 px-2 text-right">Total Revenue</th>
+                      <th className="py-3 px-2">Segment</th>
+                      <th className="py-3 px-2 text-right">Unique Wallets</th>
+                      <th className="py-3 px-2 text-right">Visit Share</th>
+                      <th className="py-3 px-2 text-right">Revenue Contributed</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-900/40 text-xs">
+                  <tbody className="divide-y divide-[#E6E9EE]/40 text-[#36404F]">
                     {customers.segmentDistribution.map((seg, idx) => (
-                      <tr key={idx} className="hover:bg-slate-950/30">
-                        <td className="py-3.5 px-2 font-medium text-slate-200 flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CUSTOMER_COLORS[idx % CUSTOMER_COLORS.length] }}></span>
+                      <tr key={idx} className="hover:bg-[#FAFBFC]">
+                        <td className="py-3 px-2 font-bold text-[#0A0E1A] flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CUSTOMER_COLORS[idx % CUSTOMER_COLORS.length] }}></span>
                           {seg.segment}
                         </td>
-                        <td className="py-3.5 px-2 text-right text-slate-350">{seg.count} unique</td>
-                        <td className="py-3.5 px-2 text-right">
+                        <td className="py-3 px-2 text-right tnum">{seg.count} unique</td>
+                        <td className="py-3 px-2 text-right tnum">
                           {((seg.count / customers.uniqueCustomers) * 100).toFixed(0)}%
                         </td>
-                        <td className="py-3.5 px-2 text-right font-semibold text-white">₹{seg.totalSpend.toLocaleString()}</td>
+                        <td className="py-3 px-2 text-right font-bold text-[#0A0E1A] tnum">₹{seg.totalSpend.toLocaleString('en-IN')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -637,14 +806,14 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               </div>
             </div>
 
-            {/* Loyalty and visit share */}
-            <div className="glass-panel rounded-2xl p-6 flex flex-col justify-between">
+            {/* Visit frequency share */}
+            <div className="pt-cardshell p-6 flex flex-col justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Visit Share Distribution</h3>
-                <p className="text-xs text-slate-400 mb-6">Distribution share of unique buyer wallets scanning your counters</p>
+                <h3 className="text-base font-bold text-[#0A0E1A] mb-1">Visit Share Distribution</h3>
+                <p className="text-xs text-[#5A6473] font-medium mb-6">Distribution percentage of shopping segments</p>
 
                 {mounted && (
-                  <div className="h-[250px] w-full flex justify-center mb-4">
+                  <div className="h-[220px] w-full flex justify-center mb-4 relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -652,7 +821,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                           cx="50%"
                           cy="50%"
                           innerRadius={60}
-                          outerRadius={90}
+                          outerRadius={85}
                           paddingAngle={3}
                           dataKey="value"
                           nameKey="name"
@@ -661,7 +830,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                             <Cell key={`cell-${index}`} fill={CUSTOMER_COLORS[index % CUSTOMER_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#E6E9EE', color: '#0A0E1A' }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -669,125 +838,128 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                 )}
               </div>
 
-              <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-900 text-xs text-slate-350 mt-4">
-                Repeat customer visit rate stands at **{customers.repeatCustomerRate}%**. {customers.repeatCustomerRate < 40 ? 'Setup a Paytm cashback coupon to reward subsequent payments and raise retention.' : 'Strong loyalty metrics! Keep verify soundbox responses active.'}
+              <div className="p-3 bg-[#F4F9FE] border border-[#3199E4]/20 rounded-xl text-xs text-[#36404F] mt-4">
+                💡 **Repeat Rate**: Your repeat visit scanner rate is **{customers.repeatCustomerRate}%**. Setting up a cashback coupon targeted at Occasional/Single visit wallets can boost customer lifetime value.
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 5: SETTLEMENTS */}
+        {/* TAB 5: SETTLEMENT INTELLIGENCE */}
         {activeTab === 'settlements' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Settlement summary ledger */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="glass-panel rounded-2xl p-6 text-center border-slate-900">
-                <span className="text-xs text-slate-500 uppercase font-semibold">Total Settled Balance</span>
-                <p className="text-2xl font-bold text-emerald-400 mt-2">₹{settlements.totalSettledAmount.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">{settlements.settledCount} batch payouts</p>
+          <div className="space-y-6 animate-fade-in">
+            {/* Settlements statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="pt-cardshell p-5 text-center">
+                <span className="text-[10px] text-[#5A6473] font-bold uppercase tracking-wider">Settled Payouts</span>
+                <p className="text-2xl font-black text-[#1F8A4C] mt-1.5 tnum">₹{settlements.totalSettledAmount.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-[#7E8794] mt-1">{settlements.settledCount} cleared runs</p>
               </div>
-              <div className="glass-panel rounded-2xl p-6 text-center">
-                <span className="text-xs text-slate-500 uppercase font-semibold">Pending Batch Balance</span>
-                <p className="text-2xl font-bold text-amber-400 mt-2">₹{settlements.totalPendingAmount.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">{settlements.pendingCount} active batches</p>
+              <div className="pt-cardshell p-5 text-center">
+                <span className="text-[10px] text-[#5A6473] font-bold uppercase tracking-wider">Pending Batches</span>
+                <p className="text-2xl font-black text-[#C77A12] mt-1.5 tnum">₹{settlements.totalPendingAmount.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-[#7E8794] mt-1">{settlements.pendingCount} batches active</p>
               </div>
-              <div className="glass-panel rounded-2xl p-6 text-center">
-                <span className="text-xs text-slate-500 uppercase font-semibold">Settlement Delay Rate</span>
-                <p className="text-2xl font-bold text-slate-100 mt-2">{settlements.delayRate}%</p>
-                <p className="text-xs text-rose-400 mt-1">{settlements.delayedCount} delayed runs</p>
+              <div className="pt-cardshell p-5 text-center">
+                <span className="text-[10px] text-[#5A6473] font-bold uppercase tracking-wider">Delay Rate</span>
+                <p className="text-2xl font-black text-[#0A0E1A] mt-1.5 tnum">{settlements.delayRate}%</p>
+                <p className="text-[10px] text-[#D63B3B] mt-1">{settlements.delayedCount} delayed clearings</p>
               </div>
-              <div className="glass-panel rounded-2xl p-6 text-center">
-                <span className="text-xs text-slate-500 uppercase font-semibold">Failed Payouts</span>
-                <p className="text-2xl font-bold text-rose-500 mt-2">₹{settlements.totalFailedAmount.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">{settlements.failedCount} failures</p>
+              <div className="pt-cardshell p-5 text-center">
+                <span className="text-[10px] text-[#5A6473] font-bold uppercase tracking-wider">Failed Payouts</span>
+                <p className="text-2xl font-black text-[#D63B3B] mt-1.5 tnum">₹{settlements.totalFailedAmount.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-[#7E8794] mt-1">{settlements.failedCount} failed bank payouts</p>
               </div>
             </div>
 
-            {/* Risk Index & Payout Ledger */}
+            {/* Gauge and ledger */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="glass-panel rounded-2xl p-6 flex flex-col justify-between items-center text-center">
+              
+              {/* Gauge and delay warnings */}
+              <div className="pt-cardshell p-6 flex flex-col items-center justify-between text-center">
                 <div className="w-full">
-                  <h3 className="text-base font-bold text-white">Pipeline Risk Index</h3>
-                  <p className="text-xs text-slate-400 mt-1">Computed via settlement failure and delays</p>
+                  <h3 className="text-[13px] font-bold text-[#0A0E1A] uppercase tracking-wider">Payout Risk Index</h3>
+                  <p className="text-xs text-[#5A6473] font-medium mt-1">Calculated via bank clearance histories</p>
                 </div>
-                
+
                 <div className="my-6 relative flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full border-8 border-slate-900 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-extrabold text-white">{settlements.riskScore}</span>
-                    <span className="text-[10px] text-slate-500 uppercase mt-0.5">Risk Score</span>
+                  <div className="h-28 w-28 rounded-full border-8 border-[#F0F2F5] flex flex-col items-center justify-center">
+                    <span className="text-3xl font-black text-[#0A0E1A]">{settlements.riskScore}</span>
+                    <span className="text-[9px] text-[#7E8794] font-bold uppercase">Index</span>
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-4">
                   <span className={cn(
-                    "text-xs font-extrabold px-3 py-1 rounded-full border uppercase tracking-wider",
-                    settlements.riskLevel === 'LOW' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' :
-                    settlements.riskLevel === 'MEDIUM' ? 'text-amber-400 border-amber-500/20 bg-amber-500/10' :
-                    'text-rose-400 border-rose-500/20 bg-rose-500/10'
+                    "text-[10px] font-bold px-3 py-1 rounded-full border uppercase tracking-wider",
+                    settlements.riskLevel === 'LOW' ? 'text-[#1F8A4C] border-[#1F8A4C]/10 bg-[#E4F6EC]' :
+                    settlements.riskLevel === 'MEDIUM' ? 'text-[#C77A12] border-[#C77A12]/10 bg-[#FCF1DD]' :
+                    'text-[#D63B3B] border-[#D63B3B]/10 bg-[#FCE7E7]'
                   )}>
-                    {settlements.riskLevel} PIPELINE RISK
+                    {settlements.riskLevel} RISK PIPELINE
                   </span>
-                  <p className="text-xs text-slate-450 mt-4 max-w-[200px] mx-auto leading-relaxed">
+                  <p className="text-xs text-[#36404F] font-medium leading-relaxed max-w-[200px] mx-auto">
                     {settlements.riskScore > 30 
-                      ? "Frequent bank clearing delays flagged. Consider toggling Instant Settlements." 
-                      : "Payout pipeline clears normally. Settlements reach linked bank accounts within 1-3 hours."}
+                      ? "Warning: bank clearance delays are elevated. Toggle Instant Settlements." 
+                      : "Payout pipeline is operational. Batches clear on-schedule."}
                   </p>
                 </div>
               </div>
 
               {/* Settlement History List */}
-              <div className="lg:col-span-2 glass-panel rounded-2xl p-6">
-                <h3 className="text-base font-bold text-white mb-4">Payout Ledger History</h3>
-                <div className="overflow-y-auto max-h-[300px] pr-2 space-y-3">
+              <div className="lg:col-span-2 pt-cardshell p-6">
+                <h3 className="text-sm font-bold text-[#0A0E1A] mb-4">Daily Payouts Ledger</h3>
+                <div className="overflow-y-auto max-h-[280px] space-y-2.5 pr-2">
                   {settlements.recentSettlements.map((sett, idx) => (
-                    <div key={idx} className="bg-slate-950/50 border border-slate-900 rounded-xl p-3 flex justify-between items-center hover:border-slate-800 transition-colors">
+                    <div key={idx} className="bg-white border border-[#E6E9EE] rounded-lg p-3 flex justify-between items-center hover:bg-[#FAFBFC] transition-colors">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-200">₹{sett.amount.toLocaleString()}</span>
+                          <span className="text-sm font-bold text-[#0A0E1A] tnum">₹{sett.amount.toLocaleString('en-IN')}</span>
                           <span className={cn(
-                            "text-[9px] px-1.5 py-0.5 rounded font-bold uppercase",
-                            sett.status === 'SETTLED' ? 'bg-emerald-500/10 text-emerald-400' :
-                            sett.status === 'DELAYED' ? 'bg-amber-500/10 text-amber-400' :
-                            sett.status === 'PENDING' ? 'bg-cyan-500/10 text-cyan-400 animate-pulse' :
-                            'bg-rose-500/10 text-rose-500'
+                            "text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider",
+                            sett.status === 'SETTLED' ? 'bg-[#E4F6EC] text-[#1F8A4C]' :
+                            sett.status === 'DELAYED' ? 'bg-[#FCF1DD] text-[#C77A12]' :
+                            sett.status === 'PENDING' ? 'bg-[#E2F0FC] text-[#3199E4] animate-pulse' :
+                            'bg-[#FCE7E7] text-[#D63B3B]'
                           )}>
                             {sett.status}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-1">ID: {sett.settlementId} &bull; Bank Ref: {sett.bankRefNo || 'None'}</p>
+                        <p className="text-[10px] text-[#7E8794] mt-1 font-medium">ID: {sett.settlementId} &bull; Ref: {sett.bankRefNo || 'N/A'}</p>
                       </div>
-                      <div className="text-right text-[10px] text-slate-400">
+                      <div className="text-right text-[10px] text-[#5A6473] font-medium">
                         <p>Initiated: {sett.initiatedTime.substring(0, 10)} 06:00</p>
-                        <p className="text-slate-550 mt-0.5">Cleared: {sett.settledTime ? sett.settledTime.substring(11, 16) : '--:--'}</p>
+                        <p className="text-[#7E8794] mt-0.5">Cleared: {sett.settledTime ? sett.settledTime.substring(11, 16) : '--:--'}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+
             </div>
           </div>
         )}
 
-        {/* TAB 6: RECAPS & REVIEWS */}
+        {/* TAB 6: DAILY RECAPS */}
         {activeTab === 'recaps' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Daily recap selector */}
-            <div className="glass-panel rounded-2xl p-6">
+          <div className="space-y-6 animate-fade-in">
+            {/* Daily recaps selector */}
+            <div className="pt-cardshell p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-brand-cyan" />
-                    Daily Operations Recap
+                  <h3 className="text-base font-bold text-[#0A0E1A] flex items-center gap-2">
+                    <Calendar className="h-4.5 w-4.5 text-[#3199E4]" />
+                    Daily Operations Report
                   </h3>
-                  <p className="text-xs text-slate-400">Compile operational summaries for any past transaction date</p>
+                  <p className="text-xs text-[#5A6473] font-medium">View detailed transactional performance metrics for any past date</p>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400 font-medium">Select Date:</span>
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="text-[#5A6473]">Select Date:</span>
                   <select
                     value={selectedRecapDate}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className="glass-input rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                    className="glass-input rounded-lg px-2 py-1 bg-white border border-[#E6E9EE] outline-none text-[#0A0E1A] cursor-pointer"
                   >
                     {availableRecapDates.map(date => (
                       <option key={date} value={date}>{date}</option>
@@ -798,56 +970,56 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
               {recapLoading ? (
                 <div className="h-[200px] flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 text-brand-cyan animate-spin" />
-                  <span className="ml-3 text-sm text-slate-400">Aggregating checkout logs...</span>
+                  <Loader2 className="h-6 w-6 text-[#3199E4] animate-spin" />
+                  <span className="ml-3 text-xs text-[#5A6473] font-semibold">Compiling checkout logs...</span>
                 </div>
               ) : (
-                <div className="bg-slate-950/60 rounded-xl border border-slate-900 p-6">
-                  <div className="flex justify-between items-start border-b border-slate-900 pb-4 mb-6">
+                <div className="bg-[#FAFBFC] border border-[#E6E9EE] rounded-xl p-5">
+                  <div className="flex justify-between items-start border-b border-[#E6E9EE] pb-4 mb-5">
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Report for {dailyRecapData.date}</h4>
-                      <p className="text-xs text-slate-500 mt-1">Generated by Paytm Merchant Intelligence Engine</p>
+                      <h4 className="text-xs font-bold text-[#5A6473] uppercase tracking-wider">Operational Report &bull; {dailyRecapData.date}</h4>
+                      <p className="text-[10px] text-[#7E8794] font-medium mt-0.5">Paytm Merchant Operations Engine</p>
                     </div>
                     <button 
                       onClick={() => {
-                        const reportText = `Daily Payout Recap (${dailyRecapData.date}) for ${merchant.name}\nRevenue: ₹${dailyRecapData.revenue}\nTransactions: ${dailyRecapData.transactionsCount}\nAvg Ticket: ₹${dailyRecapData.averageTicketSize}\nInsights:\n${dailyRecapData.insights.map(i => `- ${i}`).join('\n')}`;
+                        const reportText = `Daily Report (${dailyRecapData.date}) for ${merchant.name}\nRevenue: ₹${dailyRecapData.revenue}\nTransactions: ${dailyRecapData.transactionsCount}\nAvg Ticket: ₹${dailyRecapData.averageTicketSize}\nInsights:\n${dailyRecapData.insights.map(i => `- ${i}`).join('\n')}`;
                         navigator.clipboard.writeText(reportText);
-                        alert('Recap copied to clipboard!');
+                        alert('Report copied!');
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300 hover:text-white transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#E6E9EE] hover:bg-[#FAFBFC] text-[10px] font-bold text-[#36404F] transition-all"
                     >
                       <ClipboardCheck className="h-3 w-3" />
-                      Copy Recap
+                      Copy Report
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="text-center p-4 rounded-lg bg-slate-950 border border-slate-900/60">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Today's Revenue</span>
-                      <p className="text-xl font-bold text-white mt-1">₹{dailyRecapData.revenue.toLocaleString()}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white border border-[#E6E9EE] p-3 rounded-lg text-center">
+                      <span className="text-[9px] text-[#7E8794] font-bold uppercase tracking-wider">Collections</span>
+                      <p className="text-lg font-black text-[#0A0E1A] mt-1 tnum">₹{dailyRecapData.revenue.toLocaleString('en-IN')}</p>
                     </div>
-                    <div className="text-center p-4 rounded-lg bg-slate-950 border border-slate-900/60">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Successful Scans</span>
-                      <p className="text-xl font-bold text-white mt-1">{dailyRecapData.transactionsCount}</p>
+                    <div className="bg-white border border-[#E6E9EE] p-3 rounded-lg text-center">
+                      <span className="text-[9px] text-[#7E8794] font-bold uppercase tracking-wider">Successful Scans</span>
+                      <p className="text-lg font-black text-[#0A0E1A] mt-1 tnum">{dailyRecapData.transactionsCount}</p>
                     </div>
-                    <div className="text-center p-4 rounded-lg bg-slate-950 border border-slate-900/60">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Average Scan Value</span>
-                      <p className="text-xl font-bold text-white mt-1">₹{dailyRecapData.averageTicketSize.toFixed(0)}</p>
+                    <div className="bg-white border border-[#E6E9EE] p-3 rounded-lg text-center">
+                      <span className="text-[9px] text-[#7E8794] font-bold uppercase tracking-wider">Avg Scan Value</span>
+                      <p className="text-lg font-black text-[#0A0E1A] mt-1 tnum">₹{dailyRecapData.averageTicketSize.toFixed(0)}</p>
                     </div>
-                    <div className="text-center p-4 rounded-lg bg-slate-950 border border-slate-900/60">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Dominant Payment</span>
-                      <p className="text-sm font-bold text-slate-200 mt-2 truncate" title={dailyRecapData.dominantPaymentMode}>
+                    <div className="bg-white border border-[#E6E9EE] p-3 rounded-lg text-center">
+                      <span className="text-[9px] text-[#7E8794] font-bold uppercase tracking-wider">Dominant Payment</span>
+                      <p className="text-xs font-bold text-[#36404F] mt-2 truncate" title={dailyRecapData.dominantPaymentMode}>
                         {dailyRecapData.dominantPaymentMode}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <h5 className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-3">Paytm Operations Insights</h5>
-                    <ul className="space-y-3">
+                    <h5 className="text-[11px] text-[#7E8794] font-bold uppercase tracking-wider mb-3">AI Operations Insights</h5>
+                    <ul className="space-y-2.5">
                       {dailyRecapData.insights.map((insight, idx) => (
-                        <li key={idx} className="text-sm text-slate-350 flex items-start gap-2.5">
-                          <span className="h-2 w-2 rounded-full bg-brand-cyan mt-1.5"></span>
+                        <li key={idx} className="text-xs text-[#36404F] font-medium flex items-start gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#3199E4] mt-1.5 flex-none"></span>
                           <span>{insight}</span>
                         </li>
                       ))}
@@ -857,33 +1029,33 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               )}
             </div>
 
-            {/* Monthly business review */}
-            <div className="glass-panel rounded-2xl p-6 bg-gradient-to-br from-brand-blue/10 to-slate-950/60 border-slate-900">
-              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-brand-teal" />
+            {/* Monthly review */}
+            <div className="pt-cardshell p-6 bg-gradient-to-br from-[#E2F0FC]/20 to-white border border-[#E6E9EE]">
+              <h3 className="text-base font-bold text-[#0A0E1A] mb-2 flex items-center gap-2">
+                <FileText className="h-4.5 w-4.5 text-[#3199E4]" />
                 Monthly Business Review ({monthlyReview.monthName})
               </h3>
-              <p className="text-xs text-slate-400 mb-6">Aggregated intelligence report mapping monthly milestones and actions</p>
+              <p className="text-xs text-[#5A6473] font-medium mb-6">Aggregated intelligence report compiling monthly milestones and recommended actions</p>
 
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
-                  <h4 className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-3">Milestones Compiled</h4>
-                  <ul className="space-y-2.5">
+                  <h4 className="text-[11px] text-[#7E8794] font-bold uppercase tracking-wider mb-2.5">Milestones Compiled</h4>
+                  <ul className="space-y-2">
                     {monthlyReview.insights.map((ins, idx) => (
-                      <li key={idx} className="text-sm text-slate-300 flex items-start gap-2.5">
-                        <span className="text-brand-teal mt-1 font-bold">&bull;</span>
+                      <li key={idx} className="text-xs text-[#36404F] font-medium flex items-start gap-2">
+                        <span className="text-[#1F8A4C] mt-0.5 font-bold">&bull;</span>
                         <span>{ins}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="border-t border-slate-900 pt-6">
-                  <h4 className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-3">Paytm Growth Playbooks (Recommended Actions)</h4>
+                <div className="border-t border-[#E6E9EE] pt-5">
+                  <h4 className="text-[11px] text-[#7E8794] font-bold uppercase tracking-wider mb-3">Paytm Growth Playbooks</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {monthlyReview.recommendations.map((rec, idx) => (
-                      <div key={idx} className="bg-slate-950/80 border border-slate-900 rounded-xl p-4 flex flex-col justify-between">
-                        <p className="text-xs text-slate-300 leading-relaxed font-light">{rec}</p>
+                      <div key={idx} className="bg-white border border-[#E6E9EE] rounded-xl p-4 flex flex-col justify-between">
+                        <p className="text-xs text-[#36404F] font-medium leading-relaxed font-light">{rec}</p>
                         <button
                           onClick={() => {
                             setActiveTab('copilot');
@@ -894,7 +1066,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                             }]);
                             handleSendChat(`How do I deploy this Paytm recommendation: "${rec}"?`);
                           }}
-                          className="text-xs text-brand-cyan hover:underline font-semibold mt-4 text-left flex items-center gap-1"
+                          className="text-xs text-[#3199E4] hover:underline font-bold mt-4 text-left flex items-center gap-0.5"
                         >
                           Instruct Copilot to draft strategy &rarr;
                         </button>
@@ -907,72 +1079,63 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           </div>
         )}
 
-        {/* TAB 7: AI COPILOT CHAT */}
+        {/* TAB 7: AI COPILOT CHAT (Specimen specification: light theme, white bubble, user blue bubble) */}
         {activeTab === 'copilot' && (
-          <div className="glass-panel rounded-2xl p-6 flex flex-col h-[600px] animate-fade-in relative">
+          <div className="pt-cardshell flex flex-col h-[580px] overflow-hidden relative">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-4">
+            <div className="flex items-center justify-between border-b border-[#E6E9EE] px-5 py-3.5 bg-white select-none">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                <h3 className="text-sm font-semibold text-slate-200">Paytm Copilot Brain</h3>
+                <div className="h-2 w-2 rounded-full bg-[#1F8A4C] animate-pulse"></div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#36404F]">Paytm Copilot Brain</h3>
               </div>
-              <span className="text-[10px] text-brand-cyan font-bold bg-brand-cyan/10 border border-brand-cyan/20 px-2 py-0.5 rounded">
+              <span className="text-[10px] text-[#3199E4] font-bold bg-[#E2F0FC] border border-[#3199E4]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 Gemini-2.5-Flash Active
               </span>
             </div>
 
-            {/* Messages box */}
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
+            {/* Chat Stream (Light wash background) */}
+            <div className="flex-1 bg-[#F5F7FA] overflow-y-auto px-5 py-4 space-y-4">
               {messages.map((msg) => (
                 <div 
                   key={msg.id} 
                   className={cn(
-                    "flex flex-col max-w-[80%] rounded-2xl px-4 py-3 text-sm",
+                    "ai-bubble",
                     msg.role === 'user' 
-                      ? "ml-auto bg-brand-blue text-slate-100 border border-slate-800" 
-                      : "bg-slate-950/80 border border-slate-900 text-slate-300"
+                      ? "ai-bubble--user" 
+                      : "ai-bubble--assistant"
                   )}
                 >
-                  <div className="space-y-2 whitespace-pre-wrap leading-relaxed font-light">
-                    {msg.text.startsWith('###') ? (
-                      <div>
-                        <h4 className="font-bold text-white text-base border-b border-slate-900 pb-1.5 mb-2 flex items-center gap-1.5">
-                          <Sparkles className="h-4 w-4 text-brand-cyan" />
-                          {msg.text.split('\n')[0].replace('###', '').trim()}
-                        </h4>
-                        <p>{msg.text.split('\n').slice(1).join('\n')}</p>
-                      </div>
-                    ) : (
-                      msg.text
-                    )}
+                  <div className="whitespace-pre-wrap font-medium">
+                    {renderFormattedText(msg.text, msg.role === 'user')}
                   </div>
                 </div>
               ))}
 
               {chatLoading && (
-                <div className="bg-slate-950/85 border border-slate-900 rounded-2xl px-4 py-3 text-sm max-w-[80%] flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 text-brand-cyan animate-spin" />
-                  <span className="text-slate-400">Copilot is thinking...</span>
+                <div className="ai-bubble ai-bubble--assistant flex items-center gap-2 text-xs text-[#5A6473]">
+                  <Loader2 className="h-3.5 w-3.5 text-[#3199E4] animate-spin" />
+                  <span>Copilot is writing analysis...</span>
                 </div>
               )}
+              <div ref={chatEndRef} />
             </div>
 
-            {/* Suggestions */}
-            <div className="mb-4">
-              <p className="text-[10px] text-slate-500 uppercase font-semibold mb-2">Suggested merchant queries</p>
-              <div className="flex flex-wrap gap-2">
+            {/* Prompts chips footer */}
+            <div className="bg-[#F5F7FA] px-5 pb-3">
+              <span className="text-[9px] text-[#7E8794] font-bold uppercase tracking-wider mb-2 block select-none">Suggested operational questions</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {[
-                  { label: "Predict next week's sales", text: "What is my revenue forecast for next week?" },
-                  { label: "Why is my health score down?", text: "Why is my merchant health score down?" },
-                  { label: "What are my peak hours?", text: "What are my peak business hours?" },
-                  { label: "Check settlement delays", text: "How is my settlement delay risk looking?" },
+                  { label: "Predict sales", text: "What is my revenue forecast for next week?" },
+                  { label: "Check health index", text: "Why is my merchant health score down?" },
+                  { label: "Find peak slots", text: "What are my peak business hours?" },
+                  { label: "Check delays", text: "How is my settlement delay risk looking?" },
                 ].map((qp, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSendChat(qp.text)}
                     disabled={chatLoading}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-brand-cyan/40 text-[11px] text-slate-350 hover:text-brand-cyan transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    className="pt-chip pt-chip--ai text-xs font-bold py-1.5 px-3 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {qp.label}
                   </button>
@@ -980,26 +1143,26 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               </div>
             </div>
 
-            {/* Inputs footer */}
+            {/* Composer */}
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendChat(chatInput);
               }}
-              className="flex gap-2"
+              className="ai-chat__composer select-none"
             >
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask Copilot: 'What is my revenue forecast for next week?'"
+                placeholder="Ask Paytm AI: 'Are my payouts delayed?'"
                 disabled={chatLoading}
-                className="flex-1 glass-input rounded-xl px-4 py-2.5 text-sm"
+                className="ai-chat__input"
               />
               <button
                 type="submit"
                 disabled={!chatInput.trim() || chatLoading}
-                className="p-2.5 bg-brand-cyan text-slate-950 font-bold rounded-xl hover:bg-brand-teal transition-colors disabled:opacity-50"
+                className="ai-chat__send"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -1008,7 +1171,86 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           </div>
         )}
 
-      </section>
+      </div>
+
+      {/* 4. VOICE ASSISTANT SHEET VOICE OVERLAY (Specimen specification: sheet, voice orb with sheen) */}
+      {showVoiceOverlay && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end justify-center z-50 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-[20px] p-6 shadow-xl flex flex-col items-center gap-6 border-t border-[#E6E9EE]">
+            
+            {/* Header */}
+            <div className="w-full flex justify-between items-center select-none border-b border-[#F0F2F5] pb-3">
+              <span className="text-xs font-bold text-[#5A6473] uppercase tracking-wider flex items-center gap-2">
+                <Volume2 className="h-4 w-4 text-[#3199E4]" />
+                Paytm Voice Assistant
+              </span>
+              <button 
+                onClick={() => {
+                  setShowVoiceOverlay(false);
+                  setVoiceStatus('idle');
+                }} 
+                className="text-xs text-[#7E8794] hover:text-[#0A0E1A] font-bold bg-[#F0F2F5] px-2.5 py-1 rounded-full transition-all"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Voice Orb (Specimen spec: background sheen, scale pulse) */}
+            <div className="ai-voice flex flex-col items-center gap-4 w-full">
+              <button
+                onClick={triggerVoiceAssistant}
+                disabled={voiceStatus === 'listening' || voiceStatus === 'processing'}
+                className={cn(
+                  "ai-orb focus:outline-none transition-transform active:scale-95",
+                  voiceStatus === 'listening' ? 'ai-orb--listening' :
+                  voiceStatus === 'processing' ? 'ai-orb--processing' : ''
+                )}
+                style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0 }}
+                title="Tap to speak"
+              >
+                {/* Secondary wave ring */}
+                <div className="ai-orb__ring r1"></div>
+                <div className="ai-orb__ring r2"></div>
+                {/* Main Core */}
+                <div className="ai-orb__core">
+                  <Mic className="h-10 w-10 text-white" />
+                </div>
+              </button>
+
+              {/* Status text */}
+              <div className="ai-voice__status text-sm font-bold text-[#0A0E1A] uppercase tracking-wide">
+                {voiceStatus === 'listening' ? 'Listening to voice...' :
+                 voiceStatus === 'processing' ? 'Analyzing metrics...' :
+                 voiceStatus === 'responding' ? 'Responding...' : 'Tap Mic to Speak'}
+              </div>
+
+              {/* Transcript details */}
+              {voiceTranscript && (
+                <div className="bg-[#FAFBFC] border border-[#E6E9EE] rounded-xl p-3 w-full text-center text-xs text-[#36404F] leading-normal italic">
+                  "{voiceTranscript}"
+                </div>
+              )}
+
+              {/* Responses text */}
+              {voiceReply && (
+                <div className="bg-[#F4F9FE] border border-[#3199E4]/25 rounded-xl p-4 w-full text-[#0A0E1A] text-xs font-medium leading-relaxed shadow-sm">
+                  {voiceReply}
+                </div>
+              )}
+            </div>
+
+            {/* Voice suggestion chip */}
+            <div className="w-full text-center text-[10px] text-[#7E8794] font-semibold uppercase tracking-wider mb-2 select-none">
+              Try: "How are my settlements clearing?"
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="text-center text-[10px] font-bold text-[#7E8794] py-8 border-t border-[#E6E9EE] uppercase tracking-wider bg-white mt-12">
+        Paytm AI Design Extension &bull; 100% Secure Merchant Platform
+      </footer>
     </div>
   );
 }
