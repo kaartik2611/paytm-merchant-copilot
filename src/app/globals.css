@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:is(.dark *));
 
 
 :root {
@@ -156,6 +157,7 @@
   --ls-caps:   0.06em;
 
   --dur-fast:   140ms;
+  --dur-normal: 300ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 

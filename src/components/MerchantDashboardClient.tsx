@@ -275,7 +275,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
             return (
               <strong
                 key={`bold-${keyCounter++}`}
-                className={cn("font-extrabold", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}
+                className={cn("font-extrabold", isUser ? "text-white" : "text-[#0A0E1A]")}
               >
                 {s}
               </strong>
@@ -315,14 +315,14 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               const content = parseInlineElements(block.content || '');
               if (level === 1) {
                 return (
-                  <h2 key={blockIdx} className={cn("text-base font-extrabold my-2", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}>
+                  <h2 key={blockIdx} className={cn("text-base font-extrabold my-2", isUser ? "text-white" : "text-[#0A0E1A]")}>
                     {content}
                   </h2>
                 );
               }
               if (level === 2) {
                 return (
-                  <h3 key={blockIdx} className={cn("text-sm font-bold my-1.5", isUser ? "text-white" : "text-[#0A0E1A] dark:text-[#E2E8F0]")}>
+                  <h3 key={blockIdx} className={cn("text-sm font-bold my-1.5", isUser ? "text-white" : "text-[#0A0E1A]")}>
                     {content}
                   </h3>
                 );
@@ -333,7 +333,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   key={blockIdx}
                   className={cn(
                     "font-bold text-xs border-b pb-1 mb-2 mt-3 flex items-center gap-1.5",
-                    isUser ? "text-white border-white/20" : "text-[#0A0E1A] dark:text-[#E2E8F0] border-[#E6E9EE] dark:border-white/10"
+                    isUser ? "text-white border-white/20" : "text-[#0A0E1A] border-[#E6E9EE]"
                   )}
                 >
                   {!isUser && <Sparkles className="h-3 w-3 text-[#3199E4] flex-none" />}
@@ -344,7 +344,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
             case 'list':
               return (
-                <ul key={blockIdx} className={cn("ml-4 pl-1 list-disc space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#36404F] dark:text-[#A0AEC0]")}>
+                <ul key={blockIdx} className={cn("ml-4 pl-1 list-disc space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#0A0E1A]")}>
                   {block.items?.map((item, itemIdx) => (
                     <li key={itemIdx}>{parseInlineElements(item)}</li>
                   ))}
@@ -353,7 +353,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
 
             case 'ordered-list':
               return (
-                <ol key={blockIdx} className={cn("ml-4 pl-1 list-decimal space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#36404F] dark:text-[#A0AEC0]")}>
+                <ol key={blockIdx} className={cn("ml-4 pl-1 list-decimal space-y-1 my-1.5 text-xs leading-relaxed", isUser ? "text-white/90" : "text-[#0A0E1A]")}>
                   {block.items?.map((item, itemIdx) => (
                     <li key={itemIdx}>{parseInlineElements(item)}</li>
                   ))}
@@ -370,7 +370,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                         {block.headers?.map((header, headIdx) => (
                           <th
                             key={headIdx}
-                            className="px-3 py-2 text-left font-bold text-[#36404F] dark:text-[#A0AEC0] whitespace-nowrap"
+                            className="px-3 py-2 text-left font-bold text-[#0A0E1A] whitespace-nowrap"
                           >
                             {parseInlineElements(header)}
                           </th>
@@ -387,7 +387,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                             {row.map((cell, cellIdx) => (
                               <td
                                 key={cellIdx}
-                                className="px-3 py-2 text-[#36404F] dark:text-[#E2E8F0] whitespace-nowrap"
+                                className="px-3 py-2 text-[#0A0E1A] whitespace-nowrap"
                               >
                                 {parseInlineElements(cell)}
                               </td>
@@ -411,7 +411,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   key={blockIdx}
                   className={cn(
                     "text-xs leading-relaxed min-h-[1em] my-1",
-                    isUser ? "text-white" : "text-[#36404F] dark:text-[#E2E8F0]"
+                    isUser ? "text-white" : "text-[#0A0E1A]"
                   )}
                 >
                   {parseInlineElements(block.content || '')}
@@ -834,7 +834,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                       Launch a 'Paytm Loyalty Stamp Card' campaign
                     </h3>
                     <p className="text-sm text-[#36404F] font-medium leading-relaxed">
-                      Your repeat visits rate is currently **{customers.repeatCustomerRate}%**. Setting up a scan promo offering ₹25 cashback on a customer's 5th transaction can convert single-visit scanners.
+                      Your repeat visits rate is currently <strong className="font-extrabold text-[#0A0E1A]">{customers.repeatCustomerRate}%</strong>. Setting up a scan promo offering ₹25 cashback on a customer&apos;s 5th transaction can convert single-visit scanners.
                     </p>
                     <span className="ai-reco__impact">
                       Lift repeat rate by ~10%
@@ -873,7 +873,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
                   </div>
                 </div>
                 <p className="ai-risk__body">
-                  We predicted delay risks for pending settlements. Currently, **{settlements.delayPredictions.length} payout** (SET092 for ₹{settlements.totalPendingAmount.toLocaleString('en-IN')}) has been pending for over 24 hours.
+                  We predicted delay risks for pending settlements. Currently, <strong className="font-extrabold">{settlements.delayPredictions.length} payout</strong> (SET092 for ₹{settlements.totalPendingAmount.toLocaleString('en-IN')}) has been pending for over 24 hours.
                 </p>
                 <div className="ai-risk__actions flex justify-end gap-3.5 mt-5">
                   <button
@@ -1008,7 +1008,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               <div className="pt-cardshell p-6">
                 <div className="mb-6">
                   <h3 className="text-base font-bold text-[#0A0E1A] flex items-center gap-2">
-                    <Sparkles className="h-4.5 w-4.5 text-[#3199E4]" />
+                    <Sparkles style={{ height: 18, width: 18 }} className="text-[#3199E4]" />
                     7-Day Sales Projections & Forecasting
                   </h3>
                   <p className="text-xs text-[#5A6473] font-medium mt-1 leading-relaxed">
@@ -1060,7 +1060,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               )}
 
               <div className="mt-4 p-3.5 bg-[#F4F9FE] border border-[#3199E4]/20 rounded-xl text-xs text-[#36404F]">
-                💡 **Peak Hour Optimization**: Your peak business occurs around **{peakHours.peakHours[0]}:00** (**{peakHours.peakPeriodName}**). Double-check counter terminal network connections before this window.
+                💡 <strong className="font-extrabold text-[#0A0E1A]">Peak Hour Optimization</strong>: Your peak business occurs around <strong className="font-extrabold">{peakHours.peakHours[0]}:00</strong> (<strong className="font-extrabold">{peakHours.peakPeriodName}</strong>). Double-check counter terminal network connections before this window.
               </div>
             </div>
 
@@ -1184,7 +1184,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               </div>
 
               <div className="p-3 bg-[#F4F9FE] border border-[#3199E4]/20 rounded-xl text-xs text-[#36404F] mt-4">
-                💡 **Repeat Rate**: Your repeat visit scanner rate is **{customers.repeatCustomerRate}%**. Setting up a cashback coupon targeted at Occasional/Single visit wallets can boost customer lifetime value.
+                💡 <strong className="font-extrabold text-[#0A0E1A]">Repeat Rate</strong>: Your repeat visit scanner rate is <strong className="font-extrabold">{customers.repeatCustomerRate}%</strong>. Setting up a cashback coupon targeted at Occasional/Single visit wallets can boost customer lifetime value.
               </div>
             </div>
           </div>
@@ -1293,7 +1293,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                   <h3 className="text-base font-bold text-[#0A0E1A] flex items-center gap-2">
-                    <Calendar className="h-4.5 w-4.5 text-[#3199E4]" />
+                    <Calendar style={{ height: 18, width: 18 }} className="text-[#3199E4]" />
                     Daily Operations Report
                   </h3>
                   <p className="text-xs text-[#5A6473] font-medium">View detailed transactional performance metrics for any past date</p>
@@ -1377,7 +1377,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
             {/* Monthly review */}
             <div className="pt-cardshell p-6 bg-gradient-to-br from-[#E2F0FC]/20 to-white border border-[#E6E9EE]">
               <h3 className="text-base font-bold text-[#0A0E1A] mb-2 flex items-center gap-2">
-                <FileText className="h-4.5 w-4.5 text-[#3199E4]" />
+                <FileText style={{ height: 18, width: 18 }} className="text-[#3199E4]" />
                 Monthly Business Review ({monthlyReview.monthName})
               </h3>
               <p className="text-xs text-[#5A6473] font-medium mb-6">Aggregated intelligence report compiling monthly milestones and recommended actions</p>
