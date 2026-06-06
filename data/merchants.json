@@ -1,0 +1,112 @@
+[
+  {
+    "merchantId": "m1",
+    "name": "Apna Bazar Supermarket",
+    "category": "Grocery Store",
+    "ownerName": "Rajesh Kumar",
+    "email": "contact@apnabazar.com",
+    "phone": "+91 98765 43210",
+    "upiId": "apnabazar@paytm",
+    "city": "Mumbai",
+    "joinedDate": "2025-01-15T09:00:00Z"
+  },
+  {
+    "merchantId": "m2",
+    "name": "The Spice Route Restaurant",
+    "category": "Restaurant",
+    "ownerName": "Priya Sharma",
+    "email": "info@spiceroute.com",
+    "phone": "+91 98765 43211",
+    "upiId": "spiceroute@paytm",
+    "city": "Delhi NCR",
+    "joinedDate": "2025-02-10T10:30:00Z"
+  },
+  {
+    "merchantId": "m3",
+    "name": "City Life Medicos",
+    "category": "Medical Store",
+    "ownerName": "Dr. Amit Patel",
+    "email": "citymedicos@gmail.com",
+    "phone": "+91 98765 43212",
+    "upiId": "citymedicos@paytm",
+    "city": "Ahmedabad",
+    "joinedDate": "2025-03-01T08:00:00Z"
+  },
+  {
+    "merchantId": "m4",
+    "name": "Techno World Electronics",
+    "category": "Electronics Store",
+    "ownerName": "Vikram Mehta",
+    "email": "sales@technoworld.in",
+    "phone": "+91 98765 43213",
+    "upiId": "technoworld@paytm",
+    "city": "Bengaluru",
+    "joinedDate": "2024-11-20T11:00:00Z"
+  },
+  {
+    "merchantId": "m5",
+    "name": "Vogue Boutique & Apparel",
+    "category": "Clothing Store",
+    "ownerName": "Neha Sen",
+    "email": "hello@vogueboutique.com",
+    "phone": "+91 98765 43214",
+    "upiId": "vogueboutique@paytm",
+    "city": "Kolkata",
+    "joinedDate": "2025-01-05T10:00:00Z"
+  },
+  {
+    "merchantId": "m6",
+    "name": "Fresh Mart Grocery",
+    "category": "Grocery Store",
+    "ownerName": "Suresh Gupta",
+    "email": "suresh.g@freshmart.com",
+    "phone": "+91 98765 43215",
+    "upiId": "freshmart@paytm",
+    "city": "Pune",
+    "joinedDate": "2025-04-12T08:30:00Z"
+  },
+  {
+    "merchantId": "m7",
+    "name": "Pizza Corner & Cafe",
+    "category": "Restaurant",
+    "ownerName": "Rohan Malhotra",
+    "email": "admin@pizzacorner.in",
+    "phone": "+91 98765 43216",
+    "upiId": "pizzacorner@paytm",
+    "city": "Chandigarh",
+    "joinedDate": "2025-03-15T12:00:00Z"
+  },
+  {
+    "merchantId": "m8",
+    "name": "Cure All Pharmacy",
+    "category": "Medical Store",
+    "ownerName": "Meena Reddy",
+    "email": "cureallpharmacy@yahoo.com",
+    "phone": "+91 98765 43217",
+    "upiId": "cureall@paytm",
+    "city": "Hyderabad",
+    "joinedDate": "2025-02-18T09:15:00Z"
+  },
+  {
+    "merchantId": "m9",
+    "name": "Gadget Zone Store",
+    "category": "Electronics Store",
+    "ownerName": "Anil Verma",
+    "email": "support@gadgetzone.co.in",
+    "phone": "+91 98765 43218",
+    "upiId": "gadgetzone@paytm",
+    "city": "Chennai",
+    "joinedDate": "2024-12-01T10:00:00Z"
+  },
+  {
+    "merchantId": "m10",
+    "name": "Trendz Wear Clothing",
+    "category": "Clothing Store",
+    "ownerName": "Karan Johar",
+    "email": "contact@trendzwear.com",
+    "phone": "+91 98765 43219",
+    "upiId": "trendzwear@paytm",
+    "city": "Jaipur",
+    "joinedDate": "2025-05-01T10:30:00Z"
+  }
+]
