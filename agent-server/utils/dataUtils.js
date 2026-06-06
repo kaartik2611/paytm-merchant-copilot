@@ -1,102 +1,182 @@
-function groupByDate(transactions) {
+const path = require('path');
+
+const DATA_DIR = path.join(__dirname, '../../data');
+
+// Load and cache JSON files
+const _cache = {};
+function load(filename) {
+  if (!_cache[filename]) {
+    _cache[filename] = require(path.join(DATA_DIR, filename));
+  }
+  return _cache[filename];
+}
+
+function getTransactions(merchantId) {
+  const all = load('transactions.json');
+  return merchantId ? all.filter(t => t.merchantId === merchantId) : all;
+}
+
+function getSettlements(merchantId) {
+  const all = load('settlements.json');
+  return merchantId ? all.filter(s => s.merchantId === merchantId) : all;
+}
+
+function getMerchantById(merchantId) {
+  return load('merchants.json').find(m => m.merchantId === merchantId) || null;
+}
+
+// Extract YYYY-MM-DD from ISO timestamp
+function toDate(ts) {
+  return ts.substring(0, 10);
+}
+
+// Extract month YYYY-MM from ISO timestamp
+function toMonth(ts) {
+  return ts.substring(0, 7);
+}
+
+// Extract local hour (IST = UTC+5:30) from ISO timestamp
+function toHour(ts) {
+  const d = new Date(ts);
+  return ((d.getUTCHours() * 60 + d.getUTCMinutes() + 330) % 1440) / 60 | 0;
+}
+
+// Only count SUCCESS transactions for revenue analytics
+function successTxns(txns) {
+  return txns.filter(t => t.status === 'SUCCESS');
+}
+
+// ── Tool helpers ──────────────────────────────────────────────────────────────
+
+function getRevenueTrend(merchantId, { startDate, endDate, month } = {}) {
+  let txns = successTxns(getTransactions(merchantId));
+
+  if (month) txns = txns.filter(t => toMonth(t.timestamp) === month);
+  if (startDate) txns = txns.filter(t => toDate(t.timestamp) >= startDate);
+  if (endDate) txns = txns.filter(t => toDate(t.timestamp) <= endDate);
+
   const map = {};
-  for (const t of transactions) {
-    if (!map[t.date]) map[t.date] = { date: t.date, revenue: 0, orders: 0 };
-    map[t.date].revenue += t.amount;
-    map[t.date].orders += 1;
+  for (const t of txns) {
+    const d = toDate(t.timestamp);
+    if (!map[d]) map[d] = { date: d, revenue: 0, orders: 0 };
+    map[d].revenue += t.amount;
+    map[d].orders += 1;
   }
   return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function topProducts(transactions, n = 5) {
-  const map = {};
-  for (const t of transactions) {
-    if (!map[t.product_name]) map[t.product_name] = { name: t.product_name, revenue: 0, units: 0 };
-    map[t.product_name].revenue += t.amount;
-    map[t.product_name].units += t.quantity;
+function getPeakHours(merchantId, { month } = {}) {
+  let txns = successTxns(getTransactions(merchantId));
+  if (month) txns = txns.filter(t => toMonth(t.timestamp) === month);
+
+  const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0, revenue: 0 }));
+  for (const t of txns) {
+    const h = toHour(t.timestamp);
+    hours[h].count += 1;
+    hours[h].revenue += t.amount;
   }
-  return Object.values(map)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, n);
+  return hours;
 }
 
-function peakHours(transactions) {
-  const counts = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
-  for (const t of transactions) {
-    counts[t.hour].count += 1;
-  }
-  return counts;
-}
+function getCustomerSegments(merchantId, { month } = {}) {
+  let txns = successTxns(getTransactions(merchantId));
+  if (month) txns = txns.filter(t => toMonth(t.timestamp) === month);
 
-function customerSegments(transactions) {
   const customers = {};
-  for (const t of transactions) {
-    if (!customers[t.customer_id]) {
-      customers[t.customer_id] = { visits: 0, totalSpend: 0, isNew: t.is_new_customer };
-    }
-    customers[t.customer_id].visits += 1;
-    customers[t.customer_id].totalSpend += t.amount;
+  for (const t of txns) {
+    if (!customers[t.customerId]) customers[t.customerId] = { visits: 0, totalSpend: 0 };
+    customers[t.customerId].visits += 1;
+    customers[t.customerId].totalSpend += t.amount;
   }
 
-  let newCount = 0, returning = 0, highValue = 0, occasional = 0;
-  for (const c of Object.values(customers)) {
-    if (c.isNew) newCount++;
-    else returning++;
-    if (c.totalSpend > 500) highValue++;
-    if (c.visits <= 2) occasional++;
-  }
-
-  return { new: newCount, returning, highValue, occasional };
-}
-
-function filterTransactions(transactions, filters = {}) {
-  return transactions.filter((t) => {
-    if (filters.date && t.date !== filters.date) return false;
-    if (filters.month && t.month !== filters.month) return false;
-    if (filters.startDate && t.date < filters.startDate) return false;
-    if (filters.endDate && t.date > filters.endDate) return false;
-    if (filters.productId && t.product_id !== filters.productId) return false;
-    if (filters.customerId && t.customer_id !== filters.customerId) return false;
-    return true;
-  });
-}
-
-function getInventoryStatus(inventory) {
-  return inventory.map((item) => ({
-    ...item,
-    low: item.stock < item.reorder_level,
-  }));
-}
-
-function buildSnapshot(transactions, inventory) {
-  const juneTransactions = transactions.filter((t) => t.month === "2024-06");
-  const totalRevenue = juneTransactions.reduce((s, t) => s + t.amount, 0);
-  const top = topProducts(juneTransactions, 1);
-  const hours = peakHours(juneTransactions);
-  const peakHour = hours.reduce((a, b) => (b.count > a.count ? b : a));
-  const segments = customerSegments(juneTransactions);
-  const lowStock = inventory.filter((i) => i.stock < i.reorder_level);
-
-  const byDate = groupByDate(juneTransactions);
-  const bestDay = byDate.reduce((a, b) => (b.revenue > a.revenue ? b : a), byDate[0]);
+  const vals = Object.values(customers);
+  const avgSpend = vals.length ? vals.reduce((s, c) => s + c.totalSpend, 0) / vals.length : 0;
 
   return {
-    totalRevenue,
-    topProduct: top[0]?.name || "N/A",
-    peakHour: peakHour.hour,
-    newCustomers: segments.new,
-    returningCustomers: segments.returning,
-    lowStockItems: lowStock.map((i) => i.product_name).join(", ") || "None",
-    bestDay: bestDay?.date || "N/A",
+    uniqueCustomers: vals.length,
+    newCustomers: vals.filter(c => c.visits === 1).length,
+    returning: vals.filter(c => c.visits >= 2 && c.visits <= 4).length,
+    frequent: vals.filter(c => c.visits >= 5).length,
+    highValue: vals.filter(c => c.totalSpend > avgSpend * 1.5).length,
   };
 }
 
+function getPaymentBreakdown(merchantId, { month } = {}) {
+  let txns = successTxns(getTransactions(merchantId));
+  if (month) txns = txns.filter(t => toMonth(t.timestamp) === month);
+
+  const map = {};
+  for (const t of txns) {
+    if (!map[t.paymentMode]) map[t.paymentMode] = { mode: t.paymentMode, count: 0, revenue: 0 };
+    map[t.paymentMode].count += 1;
+    map[t.paymentMode].revenue += t.amount;
+  }
+  return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+}
+
+function getSettlementSummary(merchantId) {
+  const setts = getSettlements(merchantId);
+
+  const summary = { SETTLED: 0, PENDING: 0, DELAYED: 0, FAILED: 0 };
+  const counts = { SETTLED: 0, PENDING: 0, DELAYED: 0, FAILED: 0 };
+  for (const s of setts) {
+    if (summary[s.status] !== undefined) {
+      summary[s.status] += s.amount;
+      counts[s.status] += 1;
+    }
+  }
+
+  return {
+    settled: { amount: summary.SETTLED, count: counts.SETTLED },
+    pending: { amount: summary.PENDING, count: counts.PENDING },
+    delayed: { amount: summary.DELAYED, count: counts.DELAYED },
+    failed: { amount: summary.FAILED, count: counts.FAILED },
+    total: Object.values(summary).reduce((a, b) => a + b, 0),
+  };
+}
+
+function getRecap(merchantId, period = 'daily') {
+  const allTxns = successTxns(getTransactions(merchantId));
+  const latestDate = allTxns.reduce((max, t) => (t.timestamp > max ? t.timestamp : max), '').substring(0, 10);
+  const latestMonth = latestDate.substring(0, 7);
+
+  const txns = period === 'daily'
+    ? allTxns.filter(t => toDate(t.timestamp) === latestDate)
+    : allTxns.filter(t => toMonth(t.timestamp) === latestMonth);
+
+  const totalRevenue = txns.reduce((s, t) => s + t.amount, 0);
+  const totalOrders = txns.length;
+  const uniqueCustomers = new Set(txns.map(t => t.customerId)).size;
+  const newCustomers = txns.filter(t => {
+    // A customer is "new" on this date if their first-ever txn is on this date
+    const firstTxn = allTxns.filter(x => x.customerId === t.customerId)
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))[0];
+    return firstTxn && toDate(firstTxn.timestamp) === latestDate;
+  }).length;
+
+  const result = { period, date: latestDate, totalRevenue, totalOrders, uniqueCustomers };
+
+  if (period === 'monthly') {
+    const byDate = getRevenueTrend(merchantId, { month: latestMonth });
+    const bestDay = byDate.reduce((a, b) => (b.revenue > a.revenue ? b : a), byDate[0]);
+    result.bestDay = bestDay?.date || 'N/A';
+    result.month = latestMonth;
+  }
+
+  const merchant = getMerchantById(merchantId);
+  if (merchant) result.merchantName = merchant.name;
+
+  return result;
+}
+
 module.exports = {
-  groupByDate,
-  topProducts,
-  peakHours,
-  customerSegments,
-  filterTransactions,
-  getInventoryStatus,
-  buildSnapshot,
+  getRevenueTrend,
+  getPeakHours,
+  getCustomerSegments,
+  getPaymentBreakdown,
+  getSettlementSummary,
+  getRecap,
+  getMerchantById,
+  getTransactions,
+  successTxns,
 };

@@ -1,199 +1,124 @@
-const { transactions, inventory } = require("../data/mockData");
 const {
-  groupByDate,
-  topProducts,
-  peakHours,
-  customerSegments,
-  filterTransactions,
-  getInventoryStatus,
-  buildSnapshot,
-} = require("./dataUtils");
+  getRevenueTrend,
+  getPeakHours,
+  getCustomerSegments,
+  getPaymentBreakdown,
+  getSettlementSummary,
+  getRecap,
+  getMerchantById,
+} = require('./dataUtils');
 
 const toolDefinitions = [
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_revenue_trend",
-      description:
-        "Get daily revenue and order count. Optionally filter by date range or specific month.",
+      name: 'get_revenue_trend',
+      description: 'Get daily revenue and order count for the merchant. Filter by month or date range.',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
-          month: {
-            type: "string",
-            description: 'Filter by month in YYYY-MM format, e.g. "2024-06"',
-          },
-          startDate: {
-            type: "string",
-            description: "Start date in YYYY-MM-DD format",
-          },
-          endDate: {
-            type: "string",
-            description: "End date in YYYY-MM-DD format",
-          },
+          month: { type: 'string', description: 'Filter by month in YYYY-MM format, e.g. "2026-05"' },
+          startDate: { type: 'string', description: 'Start date in YYYY-MM-DD format (inclusive)' },
+          endDate: { type: 'string', description: 'End date in YYYY-MM-DD format (inclusive)' },
         },
       },
     },
   },
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_top_products",
-      description:
-        "Get top selling products ranked by revenue. Returns product name, total revenue, and units sold.",
+      name: 'get_peak_hours',
+      description: 'Get transaction count and revenue for each hour of the day (0–23 IST) to identify busiest hours.',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
-          count: {
-            type: "number",
-            description: "Number of top products to return (default 5)",
-          },
-          month: {
-            type: "string",
-            description: 'Filter by month in YYYY-MM format, e.g. "2024-06"',
-          },
+          month: { type: 'string', description: 'Filter by month in YYYY-MM format' },
         },
       },
     },
   },
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_peak_hours",
-      description:
-        "Get transaction counts for each hour of the day (0-23) to identify busiest hours.",
+      name: 'get_customer_segments',
+      description: 'Get customer breakdown: unique customers, new (1 visit), returning (2–4 visits), frequent (5+ visits), high-value (spend 1.5× above average).',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
-          month: {
-            type: "string",
-            description: 'Filter by month in YYYY-MM format, e.g. "2024-06"',
-          },
+          month: { type: 'string', description: 'Filter by month in YYYY-MM format' },
         },
       },
     },
   },
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_customer_segments",
-      description:
-        "Get customer breakdown: new customers, returning customers, high-value (spent > ₹500), and occasional (≤2 visits).",
+      name: 'get_payment_breakdown',
+      description: 'Get revenue and transaction count split by payment mode (UPI, Credit Card, Debit Card, etc.).',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
-          month: {
-            type: "string",
-            description: 'Filter by month in YYYY-MM format, e.g. "2024-06"',
-          },
+          month: { type: 'string', description: 'Filter by month in YYYY-MM format' },
         },
       },
     },
   },
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_inventory_alerts",
-      description:
-        "Get current inventory status for all products, including stock levels and whether each item is low stock.",
+      name: 'get_settlement_summary',
+      description: 'Get settlement status summary: how much has been settled, is pending, delayed, or failed.',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {},
       },
     },
   },
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "get_recap",
-      description:
-        'Get a business recap summary for a given period. "daily" returns today\'s stats (2024-06-06), "monthly" returns June 2024 stats including best day.',
+      name: 'get_recap',
+      description: 'Get a business recap for the latest day or current month — total revenue, orders, customers, and best day.',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           period: {
-            type: "string",
-            enum: ["daily", "monthly"],
-            description: 'Period for the recap: "daily" or "monthly"',
+            type: 'string',
+            enum: ['daily', 'monthly'],
+            description: '"daily" for today\'s stats, "monthly" for current month stats',
           },
         },
-        required: ["period"],
+        required: ['period'],
       },
     },
   },
 ];
 
-function executeTool(name, args = {}) {
+function executeTool(name, args = {}, context = {}) {
+  const merchantId = context.merchantId || null;
+
   switch (name) {
-    case "get_revenue_trend": {
-      const filtered = filterTransactions(transactions, {
+    case 'get_revenue_trend':
+      return getRevenueTrend(merchantId, {
         month: args.month,
         startDate: args.startDate,
         endDate: args.endDate,
       });
-      return groupByDate(filtered);
-    }
 
-    case "get_top_products": {
-      const filtered = args.month
-        ? filterTransactions(transactions, { month: args.month })
-        : transactions;
-      return topProducts(filtered, args.count || 5);
-    }
+    case 'get_peak_hours':
+      return getPeakHours(merchantId, { month: args.month });
 
-    case "get_peak_hours": {
-      const filtered = args.month
-        ? filterTransactions(transactions, { month: args.month })
-        : transactions;
-      return peakHours(filtered);
-    }
+    case 'get_customer_segments':
+      return getCustomerSegments(merchantId, { month: args.month });
 
-    case "get_customer_segments": {
-      const filtered = args.month
-        ? filterTransactions(transactions, { month: args.month })
-        : transactions;
-      return customerSegments(filtered);
-    }
+    case 'get_payment_breakdown':
+      return getPaymentBreakdown(merchantId, { month: args.month });
 
-    case "get_inventory_alerts": {
-      return getInventoryStatus(inventory);
-    }
+    case 'get_settlement_summary':
+      return getSettlementSummary(merchantId);
 
-    case "get_recap": {
-      const period = args.period || "daily";
-      const filtered =
-        period === "daily"
-          ? filterTransactions(transactions, { date: "2024-06-06" })
-          : filterTransactions(transactions, { month: "2024-06" });
-
-      const totalRevenue = filtered.reduce((s, t) => s + t.amount, 0);
-      const totalOrders = filtered.length;
-      const top = topProducts(filtered, 1);
-      const newCustomers = filtered.filter((t) => t.is_new_customer).length;
-      const lowStockItems = inventory
-        .filter((i) => i.stock < i.reorder_level)
-        .map((i) => i.product_name);
-
-      const result = {
-        period,
-        totalRevenue,
-        totalOrders,
-        topProduct: top[0]?.name || "N/A",
-        newCustomers,
-        lowStockItems,
-      };
-
-      if (period === "monthly") {
-        const byDate = groupByDate(filtered);
-        const bestDay = byDate.reduce(
-          (a, b) => (b.revenue > a.revenue ? b : a),
-          byDate[0]
-        );
-        result.bestDay = bestDay?.date || "N/A";
-      }
-
-      return result;
-    }
+    case 'get_recap':
+      return getRecap(merchantId, args.period || 'daily');
 
     default:
       return { error: `Unknown tool: ${name}` };
@@ -202,18 +127,21 @@ function executeTool(name, args = {}) {
 
 const SYSTEM_PROMPT = `You are the Paytm Merchant Intelligence Copilot, a senior business consultant and transactional analyst for small Indian merchants.
 
-Your job is to help merchants understand their daily business operations, identify trends, and make data-driven decisions using their transaction analytics.
+Your job is to help merchants understand their daily business operations, identify trends, and make data-driven decisions using their Paytm transaction and settlement data.
 
 Guidelines:
 1. ALWAYS call the appropriate tool before answering any question about numbers, data, or business metrics. Never guess or invent figures.
-2. Today is 2024-06-06. The data covers May 1 to June 6, 2024.
-3. Speak directly to the merchant owner in a friendly, professional, and encouraging tone.
-4. Use formatting (bold with **, bullet points with *, section headers with ###) to make insights readable.
-5. Keep answers focused — 3-5 sentences or a short bulleted list. Avoid padding.
-6. After sharing data, always add one actionable recommendation the merchant can act on immediately.
-7. When asked about restocking, always call get_inventory_alerts first.
-8. When asked about peak hours or busy times, always call get_peak_hours first.
-9. When asked about best sellers or top products, always call get_top_products first.
-10. When asked about customers or retention, always call get_customer_segments first.`;
+2. Speak directly to the merchant owner in a friendly, professional, and encouraging tone.
+3. Use formatting (bold with **, bullet points with *, section headers with ###) to make insights readable.
+4. Keep answers focused — a short bulleted list or 3-5 sentences. No padding.
+5. After sharing data, always add one actionable recommendation.
+6. The data covers UPI and card payment transactions. There is no product/inventory data — do not mention products or stock.
+7. Tool routing guide:
+   - Revenue or sales questions → get_revenue_trend
+   - Busy hours or peak time → get_peak_hours
+   - Customer retention or loyalty → get_customer_segments
+   - Payment modes (UPI vs card) → get_payment_breakdown
+   - Settlements, payouts, delays → get_settlement_summary
+   - Overall daily or monthly summary → get_recap`;
 
 module.exports = { toolDefinitions, executeTool, SYSTEM_PROMPT };

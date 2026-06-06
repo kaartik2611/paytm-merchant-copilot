@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const { message, history = [] } = req.body;
+    const { message, history = [], merchantId } = req.body;
     if (!message) {
       return res.status(400).json({ error: "message is required" });
     }
@@ -75,7 +75,7 @@ router.post("/", async (req, res) => {
           // leave fnArgs as empty object
         }
 
-        const result = executeTool(fnName, fnArgs);
+        const result = executeTool(fnName, fnArgs, { merchantId });
         console.log(`[Agent] ${ts()} ⚙ ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result)}`);
 
         messages.push({
