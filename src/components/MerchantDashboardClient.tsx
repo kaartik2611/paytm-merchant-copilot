@@ -468,6 +468,7 @@ export default function MerchantDashboardClient({ data }: { data: MerchantDashbo
           prompt: text,
           history: chatHistory,
           language: voiceLang,
+          voiceMode: voiceMode || showVoiceOverlay,
         })
       });
 

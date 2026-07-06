@@ -1,16 +1,17 @@
-const {
+import {
   getRevenueTrend,
   getPeakHours,
   getCustomerSegments,
   getPaymentBreakdown,
   getSettlementSummary,
   getRecap,
-  getMerchantById,
-} = require('./dataUtils');
+} from './dataUtils';
 
-const toolDefinitions = [
+// ── Tool definitions (OpenAI-compatible) ─────────────────────────────────────
+
+export const toolDefinitions = [
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_revenue_trend',
       description: 'Get daily revenue and order count for the merchant. Filter by month or date range.',
@@ -25,7 +26,7 @@ const toolDefinitions = [
     },
   },
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_peak_hours',
       description: 'Get transaction count and revenue for each hour of the day (0–23 IST) to identify busiest hours.',
@@ -38,10 +39,10 @@ const toolDefinitions = [
     },
   },
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_customer_segments',
-      description: 'Get customer breakdown: unique customers, new (1 visit), returning (2–4 visits), frequent (5+ visits), high-value (spend 1.5× above average).',
+      description: 'Get customer breakdown: unique customers, new (1 visit), returning (2–4 visits), frequent (5+ visits), high-value (1.5× above average spend).',
       parameters: {
         type: 'object',
         properties: {
@@ -51,7 +52,7 @@ const toolDefinitions = [
     },
   },
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_payment_breakdown',
       description: 'Get revenue and transaction count split by payment mode (UPI, Credit Card, Debit Card, etc.).',
@@ -64,18 +65,15 @@ const toolDefinitions = [
     },
   },
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_settlement_summary',
-      description: 'Get settlement status summary: how much has been settled, is pending, delayed, or failed.',
-      parameters: {
-        type: 'object',
-        properties: {},
-      },
+      description: 'Get settlement status summary: amounts settled, pending, delayed, or failed.',
+      parameters: { type: 'object', properties: {} },
     },
   },
   {
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: 'get_recap',
       description: 'Get a business recap for the latest day or current month — total revenue, orders, customers, and best day.',
@@ -85,47 +83,45 @@ const toolDefinitions = [
           period: {
             type: 'string',
             enum: ['daily', 'monthly'],
-            description: '"daily" for today\'s stats, "monthly" for current month stats',
+            description: '"daily" for latest day stats, "monthly" for current month stats',
           },
         },
         required: ['period'],
       },
     },
   },
-];
+] as const;
 
-function executeTool(name, args = {}, context = {}) {
-  const merchantId = context.merchantId || null;
+// ── Tool executor ─────────────────────────────────────────────────────────────
+
+export function executeTool(
+  name: string,
+  args: Record<string, string> = {},
+  context: { merchantId?: string | null } = {}
+): unknown {
+  const mid = context.merchantId ?? null;
 
   switch (name) {
     case 'get_revenue_trend':
-      return getRevenueTrend(merchantId, {
-        month: args.month,
-        startDate: args.startDate,
-        endDate: args.endDate,
-      });
-
+      return getRevenueTrend(mid, { month: args.month, startDate: args.startDate, endDate: args.endDate });
     case 'get_peak_hours':
-      return getPeakHours(merchantId, { month: args.month });
-
+      return getPeakHours(mid, { month: args.month });
     case 'get_customer_segments':
-      return getCustomerSegments(merchantId, { month: args.month });
-
+      return getCustomerSegments(mid, { month: args.month });
     case 'get_payment_breakdown':
-      return getPaymentBreakdown(merchantId, { month: args.month });
-
+      return getPaymentBreakdown(mid, { month: args.month });
     case 'get_settlement_summary':
-      return getSettlementSummary(merchantId);
-
+      return getSettlementSummary(mid);
     case 'get_recap':
-      return getRecap(merchantId, args.period || 'daily');
-
+      return getRecap(mid, (args.period as 'daily' | 'monthly') || 'daily');
     default:
       return { error: `Unknown tool: ${name}` };
   }
 }
 
-const BASE_SYSTEM_PROMPT = `You are the Paytm Merchant Intelligence Copilot, a senior business consultant and transactional analyst for small Indian merchants.
+// ── System prompt ─────────────────────────────────────────────────────────────
+
+const BASE_PROMPT = `You are the Paytm Merchant Intelligence Copilot, a senior business consultant and transactional analyst for small Indian merchants.
 
 Your job is to help merchants understand their daily business operations, identify trends, and make data-driven decisions using their Paytm transaction and settlement data.
 
@@ -144,11 +140,13 @@ Guidelines:
    - Settlements, payouts, delays → get_settlement_summary
    - Overall daily or monthly summary → get_recap`;
 
-function getSystemPrompt(language = 'en-IN') {
-  if (language === 'hi-IN') {
-    return BASE_SYSTEM_PROMPT + '\n\nIMPORTANT: The merchant has selected Hindi as their preferred language. Respond ENTIRELY in Hindi using Devanagari script. All insights, numbers, and recommendations must be in Hindi. Format numbers in Indian style (e.g., ₹1,00,000).';
-  }
-  return BASE_SYSTEM_PROMPT;
-}
+const HINDI_ADDON = '\n\nIMPORTANT: The merchant has selected Hindi as their preferred language. Respond ENTIRELY in Hindi using Devanagari script. All insights, numbers, and recommendations must be in Hindi. Format numbers in Indian style (e.g., ₹1,00,000).';
 
-module.exports = { toolDefinitions, executeTool, getSystemPrompt };
+const VOICE_ADDON = '\n\nIMPORTANT — VOICE MODE: This response will be read aloud via text-to-speech. Write in plain conversational prose only. No markdown — no asterisks, no hashes, no bullet dashes, no backticks, no bold, no headers. Use short natural sentences as if speaking directly to the merchant.';
+
+export function getSystemPrompt(language = 'en-IN', voiceMode = false): string {
+  let prompt = BASE_PROMPT;
+  if (language === 'hi-IN') prompt += HINDI_ADDON;
+  if (voiceMode) prompt += VOICE_ADDON;
+  return prompt;
+}
