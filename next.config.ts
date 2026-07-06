@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Ensure data JSON files are bundled with serverless API route functions
+  outputFileTracingIncludes: {
+    "/api/**": ["./data/**/*"],
+  },
 };
 
 export default nextConfig;
